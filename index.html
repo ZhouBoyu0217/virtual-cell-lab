@@ -352,6 +352,18 @@
     padding:7px 12px; border-radius:8px;
     animation:focusPulse var(--d-pulse) var(--e-inout) infinite; }
   body.tier-1 .shell.interacted #hint2{ animation:none; }
+
+  /* 窄屏（手机）：旁白 .evt 会折成多行、高度不定，气泡若固定偏移必被压住。
+     改为气泡贴顶，与底部旁白彻底分离，任何旁白长度都不会重叠。 */
+  @media (max-width: 760px){
+    body.tier-1 #hint2{
+      top: 44px; bottom: auto; left: 12px; right: 12px;
+      font-size: 12.5px; line-height: 1.55;
+    }
+    .evt{ left: 12px; right: 12px; font-size: 11.5px; line-height: 1.55; }
+    .hud{ font-size: 11px; }
+    .hud2{ font-size: 10px; }
+  }
   body.tier-1 #hud{ font-size:11px; }
 
   /* ---- ⑧ 唯一杠杆：W2 内最高档（轨道强调绿 + 拇指放大 + 标签提亮），不升 W1 ---- */
