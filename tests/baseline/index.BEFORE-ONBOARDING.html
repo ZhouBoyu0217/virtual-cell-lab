@@ -1,0 +1,3552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>虚拟细胞实验室 · 培养皿肿瘤演化模拟器</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#131417;color:#e6e6ea;
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#33363d;border-radius:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  .shell{max-width:1420px;margin:0 auto;padding:14px 16px 40px}
+
+  /* ---------- 顶栏 ---------- */
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:30px;height:30px;border-radius:8px;flex:none;
+    background:radial-gradient(circle at 34% 32%,#8fd6b0,#2f7d5c 62%,#1c4a37)}
+  .brand h1{font-size:15px;font-weight:500;margin:0;letter-spacing:.2px}
+  .brand p{font-size:11px;color:#7c7f88;margin:1px 0 0}
+  .hdright{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .uchip{display:flex;align-items:center;gap:8px;background:#1d1f24;border:1px solid #2c2f36;
+    border-radius:999px;padding:5px 12px 5px 5px;font-size:12px}
+  .uav{width:24px;height:24px;border-radius:50%;background:#2b4f63;color:#9fd0e8;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+  .ubtn{background:none;border:none;color:#7c7f88;font-size:12px;cursor:pointer;padding:4px 6px}
+  .ubtn:hover{color:#d6d8de}
+
+  /* ---------- 布局 ---------- */
+  .grid{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .colL{flex:1 1 660px;min-width:320px;display:flex;flex-direction:column;gap:12px}
+  .colR{flex:0 1 336px;min-width:290px;display:flex;flex-direction:column;gap:12px}
+
+  .card{background:#1a1c20;border:1px solid #282b31;border-radius:12px;padding:14px}
+  .ctitle{font-size:13px;font-weight:500;margin:0 0 11px;display:flex;align-items:center;gap:7px}
+  .ctitle .tag{font-size:10px;color:#6f727a;border:1px solid #31343b;border-radius:4px;
+    padding:1px 5px;font-weight:400}
+  .muted{font-size:11px;color:#6f727a;line-height:1.65}
+
+  /* ---------- 培养皿 ---------- */
+  .dishwrap{position:relative;background:#0d0e10;border-radius:11px;padding:9px;overflow:hidden}
+  canvas#dish{display:block;width:100%;height:auto;border-radius:7px}
+  .hud{position:absolute;top:18px;left:20px;font-size:12px;color:#c2c4cb;
+    background:rgba(10,11,13,.66);padding:5px 10px;border-radius:6px;pointer-events:none;
+    font-variant-numeric:tabular-nums}
+  .hud2{position:absolute;top:18px;right:20px;font-size:11px;color:#7c7f88;
+    background:rgba(10,11,13,.66);padding:4px 9px;border-radius:6px;pointer-events:none;
+    font-variant-numeric:tabular-nums;text-align:right;line-height:1.5}
+  .evt{position:absolute;bottom:18px;left:20px;right:20px;font-size:12px;color:#dfe1e7;
+    background:rgba(10,11,13,.74);padding:7px 11px;border-radius:7px;pointer-events:none;
+    opacity:0;transition:opacity .45s;border-left:2px solid #3d7a5c}
+  .evt.show{opacity:1}
+  .hint{font-size:11.5px;color:#6f727a}
+  .hint2{position:absolute;bottom:18px;right:20px;font-size:11px;color:#8b8e97;
+    background:rgba(10,11,13,.66);padding:4px 9px;border-radius:6px;pointer-events:none}
+
+  /* ---------- 放大观察 ---------- */
+  .inspbox{background:#0d0e10;border-radius:9px;overflow:hidden}
+  #insp{cursor:crosshair}
+  .inspmeta{margin-top:11px;font-size:11.5px;line-height:1.7;color:#8b8e97}
+  .inspmeta b{color:#dcdee4;font-weight:500}
+  .inspmeta .nm{font-size:13.5px;color:#e6e6ea;font-weight:500;display:block;margin-bottom:5px}
+  .inspmeta .nm i{width:9px;height:9px;border-radius:50%;display:inline-block;
+    margin-right:7px;vertical-align:0}
+  .inspmeta .kv{display:flex;justify-content:space-between;gap:8px;
+    padding:2px 0;border-bottom:1px solid #212429}
+  .inspmeta .kv:last-child{border-bottom:none}
+  .inspmeta .kv span:last-child{color:#c2c4cb;font-variant-numeric:tabular-nums}
+
+  .legend{display:flex;gap:13px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#9295a0}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;
+    vertical-align:middle}
+  .legend span{display:inline-flex;align-items:center}
+
+  /* ---------- 指标 ---------- */
+  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  .m{background:#212429;border-radius:9px;padding:10px 11px}
+  .m .k{font-size:11px;color:#7c7f88}
+  .m .v{font-size:21px;font-weight:500;margin-top:3px;font-variant-numeric:tabular-nums;
+    letter-spacing:-.4px}
+  .m .v small{font-size:12px;font-weight:400;color:#8b8e97;margin-left:1px}
+
+  /* ---------- 按钮 ---------- */
+  .ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{background:#24272c;color:#e6e6ea;border:1px solid #34373e;border-radius:8px;
+    padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;
+    transition:background .12s,border-color .12s}
+  button:hover{background:#2d3037;border-color:#41454d}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  button:disabled:hover{background:#24272c;border-color:#34373e}
+  button.on{background:#2c5b45;border-color:#3c7a5c;color:#dcf5e8}
+  button.pri{background:#2f6b4f;border-color:#3e8a66;color:#e8fbf1}
+  button.pri:hover{background:#37795a}
+  .spd{min-width:44px}
+  .spacer{flex:1}
+  .speedbox{display:flex;gap:6px;align-items:center}
+
+  /* ---------- 滑块 ---------- */
+  .sl{margin-bottom:14px}
+  .sl:last-child{margin-bottom:2px}
+  .sl .row{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;color:#9295a0;margin-bottom:6px}
+  .sl .row b{color:#e6e6ea;font-weight:500;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .sl .row em{font-style:normal;font-size:10px;color:#63666e;margin-left:5px}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;
+    background:#31343b;border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:#d3d5dc;cursor:pointer;border:none;
+    box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+    background:#d3d5dc;cursor:pointer;border:none}
+
+  /* ---------- 预设 ---------- */
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .preset{text-align:left;padding:8px 10px;font-size:12px;line-height:1.35;
+    background:#212429;border:1px solid #2c2f36;border-radius:8px}
+  .preset b{display:block;font-weight:500;font-size:12px;margin-bottom:2px}
+  .preset span{font-size:10.5px;color:#7c7f88}
+
+  /* ---------- 命运 ---------- */
+  .fate{font-size:12.5px;line-height:1.68;color:#a9acb5}
+  .fate .stage{font-size:16px;font-weight:500;color:#e6e6ea;display:block;margin-bottom:6px}
+  .fate .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:5px;
+    margin-left:7px;vertical-align:2px;font-weight:400}
+  .b-good{background:#1e3d2f;color:#7ddba8}
+  .b-warn{background:#3d3520;color:#e0c274}
+  .b-bad{background:#3d2323;color:#ec8a80}
+
+  /* ---------- AI ---------- */
+  .aiout{font-size:12.5px;line-height:1.72;color:#b4b7c0;white-space:pre-wrap;
+    word-break:break-word;max-height:280px;overflow-y:auto;margin-top:11px;
+    padding-top:11px;border-top:1px solid #282b31}
+  .aiout:empty{display:none}
+  .caret{display:inline-block;width:6px;height:13px;background:#5fa87d;
+    vertical-align:-2px;animation:bl 1s steps(2) infinite;margin-left:1px}
+  @keyframes bl{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+  /* ---------- 档案 ---------- */
+  .arch{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto}
+  .rec{background:#212429;border-radius:8px;padding:9px 11px;font-size:12px;
+    border-left:2px solid #3a3e46}
+  .rec .t1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .rec .tt{font-weight:500;color:#dcdee4;flex:1;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap}
+  .rec .tm{font-size:10px;color:#666973;flex:none}
+  .rec .t2{font-size:11px;color:#82858f;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+  .rec .t2 b{color:#b9bcc5;font-weight:500}
+  .empty{font-size:12px;color:#63666e;text-align:center;padding:18px 0}
+
+  /* ---------- 登录 ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(9,10,12,.86);backdrop-filter:blur(7px);
+    display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .overlay.show{display:flex}
+  .loginbox{width:100%;max-width:376px;background:#1a1c20;border:1px solid #2c2f36;
+    border-radius:15px;padding:26px 24px}
+  .loginbox h2{font-size:16px;font-weight:500;margin:0 0 5px}
+  .loginbox .sub{font-size:12px;color:#7c7f88;margin:0 0 20px;line-height:1.6}
+  .fld{margin-bottom:12px}
+  .fld label{display:block;font-size:11.5px;color:#8b8e97;margin-bottom:5px}
+  .fld input{width:100%;background:#212429;border:1px solid #32353c;border-radius:8px;
+    padding:10px 12px;font-size:13.5px;color:#e6e6ea;font-family:inherit;outline:none}
+  .fld input:focus{border-color:#4a8a6b}
+  .fld input::placeholder{color:#5a5d66}
+  .otprow{display:flex;gap:8px}
+  .otprow input{flex:1}
+  .otprow button{flex:none;min-width:106px;font-size:12px}
+  .err{font-size:11.5px;color:#e88a80;min-height:16px;margin-top:-4px;margin-bottom:8px}
+  .divider{display:flex;align-items:center;gap:10px;margin:18px 0;font-size:11px;color:#5f626b}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:#2a2d33}
+  .wxbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:#1e3527;border-color:#2c5b40;color:#c9f0da}
+  .wxbtn:hover{background:#234030}
+  .closelogin{position:absolute;top:14px;right:16px;background:none;border:none;
+    color:#7c7f88;font-size:19px;cursor:pointer;line-height:1;padding:4px}
+  .loginwrap{position:relative}
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(14px);
+    background:#23262c;border:1px solid #34373e;border-radius:9px;padding:9px 15px;
+    font-size:12.5px;color:#e0e2e8;opacity:0;pointer-events:none;transition:.28s;z-index:80;
+    max-width:min(90vw,460px);text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.bad{border-color:#5c3030;background:#2b1e1e;color:#f0a89f}
+
+  .loading{position:fixed;inset:0;background:#131417;display:flex;align-items:center;
+    justify-content:center;flex-direction:column;gap:15px;z-index:90}
+  .loading.hide{display:none}
+  .spin{width:26px;height:26px;border:2px solid #2c2f36;border-top-color:#5fa87d;
+    border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .loading p{font-size:12.5px;color:#7c7f88;margin:0}
+
+  /* ---------- 实验任务 ---------- */
+  .mission{background:linear-gradient(150deg,#1c2b23,#1a1c20 62%);border-color:#2f5241}
+  .m-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+  .m-name{font-size:13px;font-weight:500;color:#e6e6ea}
+  .m-name em{font-style:normal;font-size:11px;color:#6f727a;margin-left:6px;font-weight:400}
+  .m-goal{font-size:12.5px;color:#c8d4cc;line-height:1.6;margin:0 0 10px}
+  .m-bar{height:6px;background:#2a2e34;border-radius:999px;overflow:hidden;margin-bottom:7px}
+  .m-bar i{display:block;height:100%;width:0;border-radius:999px;
+    background:linear-gradient(90deg,#3f7a5e,#7ddba8);transition:width .32s ease}
+  .m-bar.warn i{background:linear-gradient(90deg,#8a6a2c,#e0c274)}
+  .crow{display:flex;justify-content:space-between;font-size:11px;color:#82858f;
+    font-variant-numeric:tabular-nums}
+  .m-tip{font-size:11px;color:#6f727a;line-height:1.65;margin-top:9px;
+    padding-top:9px;border-top:1px solid #24272c}
+  .m-tip b{color:#8fb8a2;font-weight:500}
+  .stars{font-size:15px;letter-spacing:3px;color:#e0c274;line-height:1}
+  .stars i{font-style:normal;color:#3a3e46}
+  .mission.done{background:linear-gradient(150deg,#243622,#1a1c20 62%);border-color:#4c6f33}
+  .m-acts{display:flex;gap:7px;margin-top:10px}
+  .m-acts button{flex:1;font-size:11.5px;padding:6px 8px}
+
+  /* ---------- 操作工具 ---------- */
+  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tool{font-size:12px;padding:6px 11px;border-radius:7px}
+  .tool.on{background:#2c5b45;border-color:#3c7a5c;color:#dcf5e8}
+  .tool.danger.on{background:#5b2c2c;border-color:#8a3e3e;color:#f5dcdc}
+  .tool.cyan.on{background:#1e4a56;border-color:#3c7a8c;color:#d9f4fa}
+  .tooltip{font-size:11px;color:#7c7f88;margin-left:2px}
+
+  /* ---------- 发现里程碑 ---------- */
+  .miles{display:flex;gap:6px;flex-wrap:wrap}
+  .mile{font-size:11px;color:#5f626b;border:1px solid #282b31;border-radius:999px;
+    padding:3px 9px;background:#1a1c20;transition:.25s}
+  .mile.got{color:#9fe0bb;border-color:#2f5241;background:#1c2b23}
+
+  @media (max-width:1080px){
+    .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spin"></div>
+  <p id="loadTxt">正在培养细胞…</p>
+</div>
+
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>虚拟细胞实验室</h1>
+        <p>培养皿肿瘤演化模拟器 · 相差显微镜视野</p>
+      </div>
+    </div>
+    <div class="hdright">
+      <span class="hint">点击培养皿里的任意细胞 → 放大观察细胞内部</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ 左栏 ============ -->
+    <div class="colL">
+      <div class="dishwrap">
+        <canvas id="dish" width="820" height="690"></canvas>
+        <div class="hud" id="hud">第 0 轮</div>
+        <div class="hud2" id="hud2">-- fps</div>
+        <div class="hint2" id="hint2">点击细胞可放大观察</div>
+        <div class="evt" id="evt"></div>
+      </div>
+
+      <div class="legend" id="legend"></div>
+
+      <!-- 实验任务：给定目标 + 实时进度 + 星级评价，让玩家"有事可做" -->
+      <div class="card mission" id="missionCard">
+        <div class="m-head">
+          <div class="m-name" id="mName">等待开始…<em id="mSub"></em></div>
+          <div class="stars" id="mStars"><i>★★★</i></div>
+        </div>
+        <p class="m-goal" id="mGoal">选择下方任意一个实验场景开始。</p>
+        <div class="m-bar" id="mBar"><i id="mBarFill"></i></div>
+        <div class="crow">
+          <span id="mProg">进度 0%</span>
+          <span id="mLeft">剩余 -- 轮</span>
+        </div>
+        <div class="m-tip" id="mTip"></div>
+        <div class="m-acts">
+          <button id="btnHint">给我提示</button>
+          <button id="btnNext">换下一题</button>
+        </div>
+      </div>
+
+      <!-- 实验记录：达成过的里程碑，制造收集欲 -->
+      <div class="card">
+        <div class="ctitle">实验记录 <span class="tag" id="mileCount">0 / 8</span></div>
+        <div class="miles" id="miles"></div>
+      </div>
+
+      <div class="metrics">
+        <div class="m"><div class="k">总细胞数</div><div class="v" id="mTotal">0</div></div>
+        <div class="m"><div class="k">肿瘤占比</div><div class="v" id="mTumor">0<small>%</small></div></div>
+        <div class="m"><div class="k">汇合度</div><div class="v" id="mConf">0<small>%</small></div></div>
+        <div class="m"><div class="k">恶性度</div><div class="v" id="mMalig" style="color:#e2726a">0</div></div>
+        <div class="m" id="mVirCard" style="display:none">
+          <div class="k">病毒感染</div>
+          <div class="v" id="mVir" style="color:#5cc4d6">0<small>个</small></div>
+        </div>
+        <div class="m" id="mFreeCard" style="display:none">
+          <div class="k">游离病毒</div>
+          <div class="v" id="mFree" style="color:#5cc4d6">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">操作工具 <span class="tag">直接在培养皿里下手</span></div>
+        <div class="tools">
+          <button class="tool on" data-tool="inspect">🔍 点选观察</button>
+          <button class="tool danger" data-tool="kill">✂️ 划痕清除</button>
+          <button class="tool cyan" data-tool="infect">🧫 接种病毒</button>
+          <span class="tooltip" id="toolTip">点击细胞查看内部结构</span>
+        </div>
+      </div>
+
+      <div class="ctrls">
+        <button id="btnPlay" class="on pri">暂停</button>
+        <button id="btnStep">单步</button>
+        <button id="btnReset">重置</button>
+        <button id="btnSeed">投放癌细胞</button>
+        <button id="btnVirus">投放病毒</button>
+        <button id="btnFluo" class="on">类型描边</button>
+        <div class="spacer"></div>
+        <div class="speedbox">
+          <button class="spd on" data-s="1">1×</button>
+          <button class="spd" data-s="2">2×</button>
+          <button class="spd" data-s="4">4×</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">细胞数变化 <span class="tag">实况曲线</span></div>
+        <canvas id="chart" width="820" height="118"
+          style="display:block;width:100%;height:auto;border-radius:7px;background:#16181b"></canvas>
+      </div>
+    </div>
+
+    <!-- ============ 右栏 ============ -->
+    <div class="colR">
+      <div class="card">
+        <div class="ctitle">预设实验场景</div>
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">环境因子 <span class="tag">实时生效</span></div>
+        <div id="sliders"></div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">演化速度 <span class="tag">可自行调节</span></div>
+        <div class="sl">
+          <div class="row"><span>发育速度<em>每个回合的推进节奏</em></span>
+            <b data-out="devspeed">1.0×</b></div>
+          <input type="range" min="0" max="100" value="30" id="devspeedRange">
+        </div>
+        <div class="muted" id="devspeedHint">
+          0.0× 时完全暂停演化，适合仔细观察细胞形态；调高可加速看到克隆扩张与演化结局。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">命运判定</div>
+        <div class="fate" id="fate">培养皿状态正常，等待演化开始。</div>
+      </div>
+
+      <div class="card" id="inspCard">
+        <div class="ctitle">细胞放大观察 <span class="tag">点击培养皿取材</span></div>
+        <div class="inspbox">
+          <canvas id="insp" width="300" height="300"
+            style="display:block;width:100%;height:auto;border-radius:9px;background:#0d0e10"></canvas>
+        </div>
+        <div class="inspmeta" id="inspMeta">点击培养皿里任意一个细胞，这里会放大显示它的内部结构。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+   1. 工具
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function toast(msg, bad) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(function () { t.className = 'toast' + (bad ? ' bad' : ''); }, 2600);
+}
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ============================================================
+   1.5 成像参数（由参考图实测提取）
+   ============================================================ */
+/* 参考图：高度写实的贴壁细胞培养显微摄影（纺锤形）
+   实测 平均 RGB(185,181,176) 暖米白；R-B=+9.2（偏暖）；对比度柔和 std=18.7 */
+var BG_RGB = [216, 213, 209];            // 培养液背景（暖米白，提亮以拉开细胞对比）
+
+/* --- 画布与 DOM --- */
+var cv = $('dish');
+var ctx = cv.getContext('2d', { alpha: false, desynchronized: true });
+var W = cv.width, H = cv.height;
+var CX = W / 2, CY = H / 2, RAD = Math.min(W, H) / 2 - 20;
+var chart = $('chart');
+var cctx = chart.getContext('2d');
+
+var elHud = $('hud'), elHud2 = $('hud2'), elEvt = $('evt');
+var elTotal = $('mTotal'), elTumor = $('mTumor'), elConf = $('mConf'), elMalig = $('mMalig');
+var elVir = $('mVir'), elFree = $('mFree');
+var elVirCard = $('mVirCard'), elFreeCard = $('mFreeCard');
+var elFate = $('fate');
+
+/* ============================================================
+   2. 确定性随机
+   ============================================================ */
+var seedState = 20261028;
+function rnd() {
+  seedState = (seedState * 1664525 + 1013904223) & 0x7fffffff;
+  return seedState / 0x7fffffff;
+}
+function rng(a, b) { return a + (b - a) * rnd(); }
+
+/* ============================================================
+   3.5 实验任务系统
+   ------------------------------------------------------------
+   把"沙盒观察"变成"有目标的实验"：
+   每道题给定明确判据 + 时限，玩家用环境因子与工具去达成。
+   星级按达成的"漂亮程度"给（不是及格/不及格）。
+   ============================================================ */
+var MISSIONS = [
+  {
+    id: 'guard', name: '守住防线', sub: '免疫监视', hold: true,
+    goal: '把肿瘤占比压到 28% 以下，并坚持到时限结束。',
+    env: { nutrient: 70, oxygen: 70, immune: 62, mutation: 22, chemo: 0, virus: 0 },
+    turns: 200,
+    probe: function () { return 1 - Math.min(1, M.tumorPct / 28); },
+    pass: function () { return M.tumorPct < 28 && M.malig < 45; },
+    tip: '免疫细胞会追杀肿瘤，但它们的杀伤力有上限。<b>先让肿瘤可见再拉免疫</b>效率更高；同时别让氧气太低——缺氧会筛选出更凶的克隆。',
+    hint: '试着把「免疫强度」拉到 65 以上，同时保持「氧气浓度」不低于 60。'
+  },
+  {
+    id: 'clean', name: '化疗窗口', sub: '剂量控制', hold: false,
+    goal: '用化疗把肿瘤占比压到 20% 以下，同时保住至少 55% 的正常细胞。',
+    env: { nutrient: 72, oxygen: 62, immune: 28, mutation: 35, chemo: 0, virus: 0 },
+    turns: 220,
+    probe: function () { return Math.max(0, 1 - M.tumorPct / 20) * 0.7 + Math.min(1, normalRatio() / 0.55) * 0.3; },
+    pass: function () { return M.tumorPct < 20 && normalRatio() >= 0.55; },
+    tip: '化疗对肿瘤更敏感，但<b>正常细胞也会被误伤</b>。这是一场剂量博弈：太低压不住肿瘤，太高培养皿会被清空。',
+    hint: '把「化疗药剂」逐步推到 55~70 之间，同时把「营养供给」提到 75 以上帮正常细胞恢复。'
+  },
+  {
+    id: 'hypoxia', name: '缺氧围城', sub: '空间筛选', hold: true,
+    goal: '在氧气浓度不超过 30 的条件下，把恶性度控制在 50 以内并守住。',
+    env: { nutrient: 75, oxygen: 30, immune: 35, mutation: 30, chemo: 0, virus: 0 },
+    turns: 200,
+    probe: function () { return 1 - Math.min(1, Math.max(0, M.malig - 25) / 25); },
+    pass: function () { return M.malig <= 50; },
+    tip: '缺氧是<b>双刃剑</b>：它杀死中心区细胞，但活下来的往往是更能耐受恶劣环境的侵袭性克隆。你要做的是别让它筛选出赢家。',
+    hint: '提高「营养供给」可以让细胞不必挤在中心抢氧；适当加一点「化疗」压制缺氧区边缘的存活者。'
+  },
+  {
+    id: 'viro', name: '病毒特工', sub: '靶向治疗', hold: false,
+    goal: '用溶瘤病毒让肿瘤占比降到 30% 以下。正常细胞不应低于 50%。',
+    env: { nutrient: 75, oxygen: 62, immune: 12, mutation: 38, chemo: 0, virus: 0 },
+    turns: 230,
+    probe: function () { return Math.max(0, 1 - M.tumorPct / 30) * 0.75 + Math.min(1, normalRatio() / 0.5) * 0.25; },
+    pass: function () { return M.tumorPct < 30 && normalRatio() >= 0.5; },
+    tip: '溶瘤病毒只感染肿瘤细胞，是精准武器。<b>但免疫系统会连病毒一起清除</b>——免疫越强，病毒疗法越弱。这是一对真实存在的矛盾。',
+    hint: '把「免疫强度」压到 20 以下，让病毒能安心扩散；「溶瘤病毒」拉到 70 以上，可再点「接种病毒」工具加速。'
+  },
+  {
+    id: 'race', name: '雪崩之前', sub: '极速遏制', hold: false,
+    goal: '突变率被锁在 85 的高位。在 120 轮内把肿瘤占比压到 40% 以下。',
+    env: { nutrient: 78, oxygen: 58, immune: 55, mutation: 85, chemo: 45, virus: 0 },
+    turns: 120,
+    probe: function () { return 1 - Math.min(1, M.tumorPct / 40); },
+    pass: function () { return M.tumorPct < 40; },
+    tip: '高突变率意味着<b>你压制得越狠，筛出来的克隆越强</b>。这一题考验的是速度——在演化追上你之前结束战斗。',
+    hint: '免疫 + 化疗一起上（都推到 50 以上），别留余地。时间很紧。'
+  },
+  {
+    id: 'sterile', name: '彻底清零', sub: '极限挑战', hold: false,
+    goal: '让总细胞数降到 15 以下（清空培养皿）。',
+    env: { nutrient: 40, oxygen: 50, immune: 60, mutation: 40, chemo: 0, virus: 0 },
+    turns: 240,
+    probe: function () { return 1 - Math.min(1, Math.max(0, M.total - 15) / 150); },
+    pass: function () { return M.total < 15; },
+    tip: '清空培养皿听起来简单——把化疗拉到满就行。但<b>你要先想清楚：这算成功还是失败？</b>临床上把正常细胞一起杀光，是没有意义的。',
+    hint: '「化疗药剂」拉满 100，免疫也拉到 70 以上，双管齐下。'
+  }
+];
+
+var mission = null;         // 当前任务
+var missionIdx = -1;        // 任务序号（保证每次换题不重复）
+var missionStartStep = 0;
+var missionDone = false;    // 是否已判定
+var missionStars = 0;
+var normalRatio = function () {
+  /* 正常细胞占全部活细胞的比例（任务判据用） */
+  var n = 0, tot = 0;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone || (c.dying && c.dPhase >= 3)) continue;
+    tot++;
+    if (c.type === 'normal') n++;
+  }
+  return tot ? n / tot : 0;
+};
+
+/* 开始一个任务：应用它的初始环境并重置培养皿 */
+function startMission(m) {
+  mission = m;
+  missionStartStep = 0;
+  missionDone = false;
+  missionStars = 0;
+  Object.keys(m.env).forEach(function (k) { E[k] = m.env[k]; });
+  syncSliders();
+  resetDish();
+  step = 0;
+  missionStartStep = 0;
+  renderMission();
+  showEvent('实验目标：' + m.name + ' —— ' + m.goal);
+}
+function startMissionByIndex(i) {
+  missionIdx = ((i % MISSIONS.length) + MISSIONS.length) % MISSIONS.length;
+  startMission(MISSIONS[missionIdx]);
+}
+function nextMission() { startMissionByIndex(missionIdx + 1); }
+
+function renderMission() {
+  if (!mission) return;
+  var p = Math.max(0, Math.min(1, mission.probe()));
+  var left = Math.max(0, mission.turns - (step - missionStartStep));
+
+  if (missionDone) {
+    var ok = missionStars > 0;
+    $('mName').innerHTML = (ok ? '✓ ' : '✗ ') + mission.name +
+      '<em>' + (ok ? '已完成' : '未达标') + '</em>';
+    $('mGoal').textContent = ok
+      ? '达成条件已满足，用时 ' + (step - missionStartStep) + ' 轮（限 ' + mission.turns + ' 轮）。'
+      : '时限内未满足达成条件。点「给我提示」看思路，重试时记得先想清楚再动手。';
+  } else {
+    $('mName').innerHTML = mission.name +
+      '<em>' + mission.sub + (mission.hold ? ' · 需守住' : ' · 达成即可') + '</em>';
+    $('mGoal').textContent = mission.goal;
+  }
+
+  $('mBarFill').style.width = (p * 100).toFixed(0) + '%';
+  $('mBar').className = 'm-bar' + (p < 0.4 ? ' warn' : '');
+  $('mProg').textContent = '进度 ' + Math.round(p * 100) + '%';
+  $('mLeft').textContent = missionDone ? '已结束' : '剩余 ' + left + ' 轮';
+  $('mTip').innerHTML = mission.tip;
+
+  var stars = missionDone ? missionStars : (p >= 0.85 ? 3 : p >= 0.6 ? 2 : p >= 0.35 ? 1 : 0);
+  var sh = '';
+  for (var s = 0; s < 3; s++) sh += (s < stars ? '★' : '<i>★</i>');
+  $('mStars').innerHTML = stars ? sh : '<i>★★★</i>';
+  $('missionCard').className = 'card mission' +
+    (missionDone ? (missionStars > 0 ? ' done' : '') : '');
+}
+
+/* 每步检查任务进度；到时判定成败 */
+var MISSION_MIN_TURNS = 30;   // 保护期：太早达标多半是"刚重置、肿瘤还没长出来"，不算数
+function tickMission() {
+  if (!mission || missionDone) return;
+  var elapsed = step - missionStartStep;
+  var ok = mission.pass();
+  var warmedUp = elapsed >= MISSION_MIN_TURNS;   // 培养皿需要先"长起来"
+
+  if (ok && warmedUp) {
+    /* 达成型任务（hold=false）：一旦达标立即结算，不必干等
+       维持型任务（hold=true）：必须把状态保持到时限结束 */
+    if (!mission.hold || elapsed >= mission.turns) {
+      finishMission(true, elapsed);
+      return;
+    }
+  }
+  if (elapsed >= mission.turns) { finishMission(false, elapsed); return; }
+  if (step % 6 === 0) renderMission();
+}
+
+function finishMission(ok, elapsed) {
+  missionDone = true;
+  var p = Math.max(0, Math.min(1, mission.probe()));
+  /* 星级：达成程度 + 是否提前完成（提前越多越漂亮） */
+  if (ok) {
+    var base = p >= 0.85 ? 3 : p >= 0.6 ? 2 : 1;
+    var speedBonus = (mission.hold && elapsed <= mission.turns * 0.7) ? 1 : 0;
+    missionStars = Math.min(3, base + speedBonus);
+  } else {
+    missionStars = 0;
+  }
+  renderMission();
+
+  if (ok) {
+    var st = missionStars === 3 ? '完美达成！' : missionStars === 2 ? '顺利达成' : '勉强达成';
+    showEvent('✓ 「' + mission.name + '」' + st + '（' + '★'.repeat(missionStars) + '）' +
+      '—— 点「换下一题」继续挑战。');
+    unlockMile('m_' + mission.id);
+  } else {
+    showEvent('✗ 「' + mission.name + '」未在时限内达标。点「给我提示」看思路，或点「换下一题」。');
+  }
+  /* 结算后自动暂停，让玩家从容查看结果 */
+  playing = false;
+  $('btnPlay').textContent = '继续';
+  $('btnPlay').classList.remove('on', 'pri');
+}
+
+/* ============================================================
+   3.6 实验记录（里程碑）—— 制造"想收集全"的动机
+   ============================================================ */
+var MILES = [
+  { id: 'm_guard',    t: '守住防线 ★' },
+  { id: 'm_clean',    t: '化疗窗口 ★' },
+  { id: 'm_hypoxia',  t: '缺氧围城 ★' },
+  { id: 'm_viro',     t: '病毒特工 ★' },
+  { id: 'm_race',     t: '雪崩之前 ★' },
+  { id: 'm_sterile',  t: '彻底清零 ★' },
+  { id: 'first_lysis', t: '目睹裂解' },
+  { id: 'no_tumor',   t: '肿瘤清零' }
+];
+var mileGot = {};
+function unlockMile(id) {
+  if (mileGot[id]) return;
+  mileGot[id] = 1;
+  renderMiles();
+  var m = MILES.filter(function (x) { return x.id === id; })[0];
+  if (m) toast('🏅 新记录：' + m.t.replace(' ★', ''));
+}
+function renderMiles() {
+  var box = $('miles');
+  if (!box) return;
+  box.innerHTML = MILES.map(function (m) {
+    return '<span class="mile' + (mileGot[m.id] ? ' got' : '') + '">' +
+      (mileGot[m.id] ? '✓ ' : '') + m.t + '</span>';
+  }).join('');
+  var n = MILES.filter(function (m) { return mileGot[m.id]; }).length;
+  $('mileCount').textContent = n + ' / ' + MILES.length;
+}
+
+/* ============================================================
+   3. 环境因子
+   ============================================================ */
+var ENV_DEF = [
+  { id: 'nutrient', label: '营养供给', val: 70, hint: '驱动增殖速率' },
+  { id: 'oxygen',   label: '氧气浓度', val: 48, hint: '低于阈值触发坏死' },
+  { id: 'immune',   label: '免疫强度', val: 18, hint: '免疫细胞数量与杀伤力' },
+  { id: 'mutation', label: '突变率',   val: 30, hint: '基因损伤累积速度' },
+  { id: 'chemo',    label: '化疗药剂', val: 0,  hint: '抑制增殖，有细胞毒性' },
+  { id: 'virus',    label: '溶瘤病毒', val: 0,  hint: '感染并裂解肿瘤细胞' }
+];
+var E = {};
+ENV_DEF.forEach(function (d) { E[d.id] = d.val; });
+
+var slBox = $('sliders');
+ENV_DEF.forEach(function (d) {
+  var el = document.createElement('div');
+  el.className = 'sl';
+  el.innerHTML =
+    '<div class="row"><span>' + d.label + '<em>' + d.hint + '</em></span>' +
+    '<b data-out="' + d.id + '">' + d.val + '</b></div>' +
+    '<input type="range" min="0" max="100" value="' + d.val + '" data-env="' + d.id + '">';
+  slBox.appendChild(el);
+});
+slBox.addEventListener('input', function (ev) {
+  var id = ev.target.getAttribute('data-env');
+  if (!id) return;
+  E[id] = +ev.target.value;
+  slBox.querySelector('[data-out="' + id + '"]').textContent = E[id];
+  if (id === 'oxygen' || id === 'nutrient') onEnvShift(id, E[id]);
+});
+function syncSliders() {
+  ENV_DEF.forEach(function (d) {
+    var inp = slBox.querySelector('[data-env="' + d.id + '"]');
+    var out = slBox.querySelector('[data-out="' + d.id + '"]');
+    if (inp) inp.value = E[d.id];
+    if (out) out.textContent = E[d.id];
+  });
+}
+
+/* 环境剧变时给玩家一句提示（教学反馈） */
+var lastEnvNote = 0;
+function onEnvShift(id, v) {
+  var now = performance.now();
+  if (now - lastEnvNote < 4000) return;
+  if (id === 'oxygen' && v < 26) {
+    lastEnvNote = now;
+    showEvent('氧气骤降：中心区域开始缺氧，正常细胞将比肿瘤细胞更早坏死。');
+  } else if (id === 'oxygen' && v > 82) {
+    lastEnvNote = now;
+    showEvent('氧气充足：缺氧筛选压力消失，低侵袭性克隆也能存活。');
+  } else if (id === 'nutrient' && v < 18) {
+    lastEnvNote = now;
+    showEvent('营养枯竭：增殖几乎停滞，细胞进入静息状态。');
+  } else if (id === 'immune' && v > 72) {
+    lastEnvNote = now;
+    showEvent('免疫压力升高：免疫细胞正在持续清除肿瘤克隆。');
+  } else if (id === 'virus' && v > 55) {
+    lastEnvNote = now;
+    showEvent('溶瘤病毒已投放：它们专门感染肿瘤细胞，在胞内复制后裂解宿主，释放病毒继续扩散。');
+  } else if (id === 'virus' && v > 0 && v <= 55) {
+    lastEnvNote = now;
+    showEvent('低剂量病毒：感染扩散较慢，可能被免疫系统提前清除。');
+  }
+}
+var evtTimer = null;
+function showEvent(txt) {
+  elEvt.textContent = txt;
+  elEvt.classList.add('show');
+  clearTimeout(evtTimer);
+  evtTimer = setTimeout(function () { elEvt.classList.remove('show'); }, 5200);
+}
+
+/* ============================================================
+   3.7 实时旁白：把数值变化翻译成"正在发生的事"
+   ------------------------------------------------------------
+   人不会对"肿瘤占比 42%"产生情绪，但会对"它们正在挤开邻居"产生情绪。
+   旁白做的是后者 —— 让数字有了剧情。
+   ============================================================ */
+var narr = { lastPct: -1, lastTotal: -1, seenTumor: false, cool: 0 };
+var lastNarrStep = -999;
+
+function narrate() {
+  if (step - lastNarrStep < 26) return;      // 冷却：不要刷屏
+  if (missionDone) return;
+  var txt = null;
+  var pct = M.tumorPct, tot = M.total;
+
+  /* 免疫细胞正在击杀肿瘤（M.immune 高 + 肿瘤下降）*/
+  if (narr.lastPct > 0 && pct < narr.lastPct - 2.5 && E.immune > 45 && M.immune > 6) {
+    txt = '免疫细胞刚刚清掉了一批肿瘤克隆 —— 培养皿里的免疫压力正在起效。';
+  }
+  /* 肿瘤正在挤压（占比上升 + 汇合度高）*/
+  else if (narr.lastPct >= 0 && pct > narr.lastPct + 3 && M.confluence > 65) {
+    txt = '肿瘤克隆正在挤开相邻的正常细胞，铺展面积在扩大 —— 接触抑制已经失效。';
+  }
+  /* 化疗杀得太狠 */
+  else if (E.chemo > 70 && tot < narr.lastTotal - 22 && narr.lastTotal > 0) {
+    txt = '化疗正在无差别清除细胞，连正常细胞也在成片脱落。剂量可能过头了。';
+  }
+  /* 病毒在扩散 */
+  else if (E.virus > 0 && M.infected >= 5 && narr.lastPct >= 0 && pct <= narr.lastPct) {
+    txt = '病毒正在肿瘤克隆里横向扩散，肿瘤扩张被按住了。';
+  }
+  /* 濒临崩溃 */
+  else if (tot > 0 && tot < 22 && narr.lastTotal >= 22) {
+    txt = '培养皿已经接近空盘。此刻再加大剂量，就要考虑"值不值得"了。';
+  }
+  /* 中心缺氧 */
+  else if (E.oxygen < 26 && M.confluence > 70) {
+    txt = '中心区域氧气耗尽，你能看到那里开始出现坏死的暗斑。';
+  }
+
+  if (txt) {
+    lastNarrStep = step;
+    showEvent(txt);
+  }
+  narr.lastPct = pct;
+  narr.lastTotal = tot;
+}
+
+/* ============================================================
+   4. 精灵（含死亡形态）
+   ============================================================ */
+
+function makeBlobPath(c, cx, cy, baseR, n, jit) {
+  c.beginPath();
+  for (var i = 0; i <= n; i++) {
+    var a = i / n * Math.PI * 2, r = baseR;
+    for (var k = 0; k < jit.length; k++) {
+      r += jit[k].amp * baseR * Math.sin((k + 2) * a + jit[k].ph);
+    }
+    var x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  }
+  c.closePath();
+}
+function mkCanvas(w, h) {
+  var c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+
+/* ============================================================
+   4.1 相衬显微镜成像（质感的核心）
+   ------------------------------------------------------------
+   真实相衬显微镜并不是"给细胞涂颜色"，而是把细胞造成的**光程差（相位）**
+   转换成亮度差，并在细胞边缘产生标志性的亮光晕（halo artifact）。
+
+   弱相位物体近似下的强度分布：
+       I = I₀ − k_dark·T + k_halo·( T_blur − T )
+   T      = 光学厚度（折射率 × 厚度），细胞越"厚"越暗；
+   T_blur = T 的低频分量（高斯模糊）。
+   最后一项正是相衬的特征光晕：细胞边缘外侧 T=0 而 T_blur>0，
+   于是得到一圈明亮的晕环 —— 这是手工描边画不出来的。
+
+   因为细胞精灵是预渲染的，这一步只在加载时执行一次，运行时零开销。 */
+function phaseContrast(src, o) {
+  o = o || {};
+  var w = src.width, h = src.height;
+  var sg = src.getContext('2d');
+  var base;
+  try { base = sg.getImageData(0, 0, w, h); } catch (e) { return src; }
+
+  /* 低频分量：用浏览器自带的高斯模糊（GPU 加速） */
+  var low = null;
+  try {
+    var bl = mkCanvas(w, h), blg = bl.getContext('2d');
+    blg.filter = 'blur(' + (o.blur || 6) + 'px)';
+    blg.drawImage(src, 0, 0);
+    low = blg.getImageData(0, 0, w, h);
+  } catch (e) { return src; }
+  if (!low) return src;
+
+  var d = base.data, l = low.data, n = w * h;
+  var kd = (o.dark == null) ? 0.40 : o.dark;   // 厚度压暗强度
+  var kh = (o.halo == null) ? 1.35 : o.halo;   // 边缘光晕强度
+
+  /* 光晕是"亮"的：接近白、略偏暖，叠在米白背景上会明显提亮 */
+  var hR = 250, hG = 249, hB = 247;
+
+  var outC = mkCanvas(w, h), og = outC.getContext('2d');
+  var od = og.createImageData(w, h), odat = od.data;
+
+  for (var i = 0; i < n; i++) {
+    var p = i * 4;
+    /* --- 光学厚度：细胞内越暗 → 越"厚" --- */
+    var aS = d[p + 3] / 255;
+    var lumS = (d[p] * 0.30 + d[p + 1] * 0.59 + d[p + 2] * 0.11) / 255;
+    var T = aS * (1 - lumS);
+
+    var aL = l[p + 3] / 255;
+    var lumL = (l[p] * 0.30 + l[p + 1] * 0.59 + l[p + 2] * 0.11) / 255;
+    var Tb = aL * (1 - lumL);
+
+    /* 边缘梯度：细胞内为负（内侧压暗），细胞外为正（外侧亮晕） */
+    var grad = Tb - T;
+    var outside = Math.max(0, grad);       // 光晕强度
+    var innerEdge = Math.min(0, grad);     // 内侧暗边
+
+    /* 光晕层 alpha */
+    var haloA = Math.min(1, outside * kh * 2.6);
+    /* 本体层 alpha（厚度压暗） */
+    var bodyA = aS;
+
+    var A = bodyA + haloA * (1 - bodyA);
+    if (A <= 0.008) { odat[p + 3] = 0; continue; }
+
+    /* 本体颜色：原色压暗 + 内侧过渡暗边 */
+    var dk = kd * 132 * T + 0.55 * kh * 150 * innerEdge;
+    var bR = d[p] - dk, bG = d[p + 1] - dk, bB = d[p + 2] - dk;
+
+    /* 双层合成：本体（下）+ 光晕（上） */
+    var wB = bodyA / A, wH = haloA * (1 - bodyA) / A;
+    odat[p]     = bR * wB + hR * wH;
+    odat[p + 1] = bG * wB + hG * wH;
+    odat[p + 2] = bB * wB + hB * wH;
+    odat[p + 3] = A * 255;
+  }
+  og.putImageData(od, 0, 0);
+  return outC;
+}
+
+/* --- 活细胞：纺锤形贴壁细胞（对齐参考图实测形态）--- */
+/* 参考图实测：暖米白基调 RGB(185,181,176)，R-B=+9.2（偏暖），
+   对比度柔和 std=18.7，细胞细长纺锤形、两端收尖、中央清晰椭圆核+深色核仁 */
+var SPR = 280, BLOB_R = 96, VARIANTS = 12;
+var BUCKET_SCALES = [];
+/* 修正：scale 需覆盖 pr/BLOB_R = 0.11~0.31，旧范围 0.135~0.238 会把大细胞
+   全部钳到最大桶，导致所有成熟细胞大小完全一致 */
+for (var bs = 0.155; bs <= 0.345; bs += 0.011) BUCKET_SCALES.push(bs);
+var BUCKETS_MID = Math.floor(BUCKET_SCALES.length / 2) - 2;
+var spriteBuckets = {};   // 按类型分组的细胞体
+var outlineBuckets = {};  // 按类型分组的彩色轮廓（替代圈选圆环）
+var spriteMeta = {};      // 每个变体的 stretch / rot，供轮廓对齐复用
+
+/* 相衬成像参数：不同细胞类型的光学厚度不同 → 光晕强弱也不同
+   （免疫细胞小而圆、折光强，光晕更明显；肿瘤细胞扁平铺展，光晕更弱） */
+var PHASE_OPTS = {
+  normal:  { blur: 7, dark: 0.40, halo: 1.30 },
+  tumor:   { blur: 7, dark: 0.34, halo: 1.15 },
+  mutant:  { blur: 7, dark: 0.32, halo: 1.10 },
+  immune:  { blur: 6, dark: 0.46, halo: 1.55 }
+};
+
+/* 统一死亡配色：不再用刺眼纯白，与活细胞胞质同一暖灰族 */
+var DEAD_BODY = ['rgb(214,210,205)', 'rgb(200,195,190)', 'rgb(182,177,173)', 'rgb(164,159,156)'];
+var DEAD_BODY_DIM = ['rgb(198,193,188)', 'rgb(184,179,174)', 'rgb(168,163,159)', 'rgb(150,146,143)'];
+
+/* 类型轮廓色：只描细胞轮廓，不再用大圆环圈住细胞 */
+var OUTLINE_COLORS = {
+  normal: 'rgba(108,152,196,0.92)',   // 正常 = 沉稳蓝
+  tumor:  'rgba(206,72,60,0.95)',     // 肿瘤 = 红
+  mutant: 'rgba(126,74,196,0.95)',    // 侵袭 = 紫
+  immune: 'rgba(46,150,92,0.95)',     // 免疫 = 绿
+  infected: 'rgba(214,150,44,0.95)'   // 被病毒感染 = 琥珀色
+};
+var OUTLINE_W = 5.0;                  // 精灵坐标系下的描边宽（随缩放自动变细）
+
+/* 溶瘤病毒（可见颗粒）配色 */
+var VIRUS_TINT = 'rgba(96,196,214,';   // 病毒颗粒主色（青蓝，与细胞暖灰形成对比）
+
+/* 每种细胞的外观
+   stretch : 主轴 / 短轴长度比（越大越细长）
+   tip     : 两端收尖程度，0=椭圆，0.5~0.7=明显纺锤，1=尖锐
+   jitAmp  : 轮廓不规则度
+   rimA    : 亮边强度（相差显微镜的折光边缘） */
+var CELL_LOOK = {
+  normal: {
+    stretch: [2.25, 3.10],        // 细长纺锤形（关键）
+    jitAmp: 0.45,                 // 轮廓平滑
+    tip: 0.44,                    // 两端收尖程度（0.42~0.48 为圆头纺锤）
+    body: ['rgb(186,181,176)', 'rgb(172,167,162)', 'rgb(154,149,145)', 'rgb(136,131,128)'],
+    rim: 'rgba(244,242,240,0.72)', rimW: 1.3, rimA: 0.60,
+    halo: 0.62,
+    nucleus: 1, nucR: [0.36, 0.46], nucleoli: 1,
+    mito: 8, er: 4, golgi: 1, vacuoles: 3, lipid: 1
+  },
+  tumor: {
+    stretch: [1.60, 2.20],        // 没那么细长，更"胖"更乱
+    jitAmp: 1.25,
+    tip: 0.34,
+    body: ['rgb(184,175,173)', 'rgb(170,161,159)', 'rgb(151,142,141)', 'rgb(133,125,125)'],
+    rim: 'rgba(246,238,237,0.74)', rimW: 1.4, rimA: 0.58,
+    halo: 0.56,
+    nucleus: 2, nucR: [0.24, 0.36], nucleoli: 3,
+    mito: 6, er: 3, golgi: 2, vacuoles: 4, lipid: 5,
+    abnormal: true
+  },
+  mutant: {
+    stretch: [1.35, 1.90],        // 最不规则
+    jitAmp: 1.70,
+    tip: 0.30,
+    body: ['rgb(180,171,174)', 'rgb(166,156,160)', 'rgb(147,137,142)', 'rgb(129,120,126)'],
+    rim: 'rgba(248,236,240,0.72)', rimW: 1.3, rimA: 0.56,
+    halo: 0.52,
+    nucleus: 3, nucR: [0.20, 0.31], nucleoli: 5,
+    mito: 4, er: 2, golgi: 1, vacuoles: 5, lipid: 7,
+    abnormal: true, pseudopod: true
+  },
+  immune: {
+    stretch: [1.10, 1.45],        // 免疫细胞偏圆
+    jitAmp: 0.75,
+    tip: 0.16,                    // 近椭圆
+    body: ['rgb(190,188,186)', 'rgb(176,174,173)', 'rgb(159,157,157)', 'rgb(142,140,141)'],
+    rim: 'rgba(226,246,236,0.80)', rimW: 1.6, rimA: 0.62,
+    halo: 0.68,
+    nucleus: 1, nucR: [0.40, 0.50], nucleoli: 1,
+    mito: 7, er: 3, golgi: 1, vacuoles: 1, lipid: 0,
+    immune: true
+  }
+};
+var TYPE_KEYS = ['normal', 'tumor', 'mutant', 'immune'];
+
+/* ---- 纺锤形轮廓（修正版 v2）----
+   用参数方程 x=A·cos t，y=B·sign(sin t)·|sin t|^(1+tip·0.55)
+   指数=1 时是标准椭圆（圆头）；指数>1 时两端渐尖但仍平滑，
+   不会出现旧版那种菱形/叶片状尖角。
+   加入 tail：细胞后端比前端更尖（成纤维细胞贴壁迁移的真实形态）。 */
+function spindlePath(g, A, B, tip, jitAmp, ph, scale) {
+  var N = 110;
+  var e0 = 1 + tip * 0.55;          // 前端指数
+  var e1 = e0 + 0.26;               // 后端更尖
+  g.beginPath();
+  for (var i = 0; i <= N; i++) {
+    var a = i / N * Math.PI * 2;
+    var ca = Math.cos(a), sa = Math.sin(a);
+    var j = 1;
+    if (jitAmp) {
+      for (var k = 0; k < 3; k++) {
+        j *= 1 + (0.026 * jitAmp) * Math.sin((k + 2) * a + (k * 1.7 + ph));
+      }
+    }
+    var ex = ca < 0 ? e1 : e0;
+    var wy = Math.pow(Math.abs(sa), ex) * (sa < 0 ? -1 : 1);
+    var x = A * ca * j * scale;
+    var y = B * wy * j * scale;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.closePath();
+}
+
+var _lastStretch = 1, _lastRot = 0;
+function buildSprite(typeKey) {
+  var look = CELL_LOOK[typeKey] || CELL_LOOK.normal;
+  var c = mkCanvas(SPR, SPR);
+  var g = c.getContext('2d');
+  var cx = SPR / 2, cy = SPR / 2;
+  var stretch = rng(look.stretch[0], look.stretch[1]);
+  var rot = rng(0, Math.PI);
+  _lastStretch = stretch; _lastRot = rot;
+  var ph = stretch * 2.3 + rot * 1.7;
+  var halfLen = BLOB_R * 0.90;              // 沿主轴半径
+  var halfWid = halfLen / stretch;          // 垂直于主轴（细）
+
+  function spindlePath2(scale) {
+    spindlePath(g, halfLen, halfWid, look.tip, look.jitAmp, ph, scale);
+  }
+  var spindlePathFn = spindlePath2;
+
+  g.save();
+  g.translate(cx, cy); g.rotate(rot);
+
+  /* 伪足：侵袭细胞尖端伸出细长突起 */
+  if (look.pseudopod) {
+    var nPod = 2 + ((rnd() * 3) | 0);
+    for (var p2 = 0; p2 < nPod; p2++) {
+      var dir = rnd() > 0.5 ? 1 : -1;
+      var plen = halfLen * rng(0.28, 0.62);
+      var pw = halfWid * rng(0.30, 0.55);
+      var yOff = rng(-0.35, 0.35) * halfWid;
+      g.beginPath();
+      g.moveTo(dir * halfLen * 0.82, yOff - pw);
+      g.quadraticCurveTo(dir * (halfLen + plen * 0.6), yOff - pw * 0.5,
+                         dir * (halfLen + plen), yOff);
+      g.quadraticCurveTo(dir * (halfLen + plen * 0.6), yOff + pw * 0.5,
+                         dir * halfLen * 0.82, yOff + pw);
+      g.closePath();
+      g.fillStyle = look.body[2];
+      g.fill();
+    }
+  }
+
+  /* 说明：相衬显微镜标志性的边缘光晕由 phaseContrast() 统一生成，
+     这里不再手工描亮边（否则会双重描边、显得很"假"）。 */
+
+  /* 胞质主体：贴壁细胞是"扁"的，用沿短轴方向的线性渐变而不是径向球状渐变，
+     避免出现 3D 小球感。中心略亮、边缘略暗，压出扁平铺展的效果。 */
+  var cg = g.createLinearGradient(0, -halfWid * 1.05, 0, halfWid * 1.05);
+  cg.addColorStop(0.00, look.body[3]);
+  cg.addColorStop(0.30, look.body[1]);
+  cg.addColorStop(0.50, look.body[0]);
+  cg.addColorStop(0.72, look.body[1]);
+  cg.addColorStop(1.00, look.body[3]);
+  spindlePath2(1.0);
+  g.fillStyle = cg; g.fill();
+
+  /* 沿主轴的轻微明暗（头尾稍暗，中心区通透） */
+  var ag = g.createLinearGradient(-halfLen, 0, halfLen, 0);
+  ag.addColorStop(0.00, 'rgba(150,145,141,0.20)');
+  ag.addColorStop(0.28, 'rgba(150,145,141,0.00)');
+  ag.addColorStop(0.72, 'rgba(150,145,141,0.00)');
+  ag.addColorStop(1.00, 'rgba(150,145,141,0.22)');
+  spindlePath2(0.99);
+  g.fillStyle = ag; g.fill();
+
+  /* 边缘压暗：让细胞边界更实（参照真实贴壁细胞的暗边） */
+  g.save();
+  g.globalAlpha = 0.34;
+  spindlePath2(0.970);
+  g.strokeStyle = 'rgba(152,147,143,0.50)';
+  g.lineWidth = 4.4;
+  g.stroke();
+  g.restore();
+
+  /* ---- 内部结构（裁剪）---- */
+  g.save();
+  spindlePath2(0.985);
+  g.clip();
+
+  /* 内质网：沿主轴方向的细丝（成纤维细胞特征） */
+  for (var eI = 0; eI < look.er * 7; eI++) {
+    var ey0 = rng(-0.75, 0.75) * halfWid;
+    var ex0 = rng(-0.85, 0.85) * halfLen;
+    var eL = halfLen * rng(0.10, 0.30);
+    g.beginPath();
+    g.moveTo(ex0, ey0);
+    g.quadraticCurveTo(ex0 + eL * 0.5, ey0 + rng(-6, 6), ex0 + eL, ey0 + rng(-8, 8));
+    g.strokeStyle = 'rgba(168,164,162,' + rng(0.08, 0.18).toFixed(3) + ')';
+    g.lineWidth = rng(1.0, 2.4);
+    g.lineCap = 'round';
+    g.stroke();
+  }
+
+  /* 线粒体：细小椭圆 */
+  for (var mI = 0; mI < look.mito * 1.6; mI++) {
+    var mx = rng(-0.8, 0.8) * halfLen, my = rng(-0.72, 0.72) * halfWid;
+    var mL = halfLen * rng(0.055, 0.11), mW = mL * rng(0.36, 0.52);
+    g.save();
+    g.translate(mx, my); g.rotate(rng(0, 6.283));
+    g.beginPath(); g.ellipse(0, 0, mL, mW, 0, 0, 6.283);
+    g.fillStyle = 'rgba(160,156,156,' + rng(0.18, 0.32).toFixed(3) + ')';
+    g.fill();
+    g.strokeStyle = 'rgba(138,134,136,' + rng(0.14, 0.26).toFixed(3) + ')';
+    g.lineWidth = 1.0; g.stroke();
+    g.restore();
+  }
+
+  /* 高尔基体 */
+  for (var gI = 0; gI < look.golgi; gI++) {
+    var gx = rng(-0.3, 0.3) * halfLen, gy = rng(-0.45, 0.45) * halfWid;
+    var gR = halfWid * rng(0.42, 0.66);
+    g.save();
+    g.translate(gx, gy); g.rotate(rng(-0.5, 0.5));
+    for (var sI = 0; sI < 4; sI++) {
+      g.beginPath();
+      g.arc(0, sI * gR * 0.17, gR - sI * gR * 0.13, Math.PI * 1.12, Math.PI * 1.88);
+      g.strokeStyle = 'rgba(166,162,162,' + (0.20 - sI * 0.035).toFixed(3) + ')';
+      g.lineWidth = 1.4;
+      g.stroke();
+    }
+    g.restore();
+  }
+
+  /* 空泡：透亮小圆（参考图里明显可见） */
+  for (var vI = 0; vI < look.vacuoles; vI++) {
+    var vx = rng(-0.78, 0.78) * halfLen, vy = rng(-0.62, 0.62) * halfWid;
+    var vR = halfWid * rng(0.26, 0.52);
+    var vg = g.createRadialGradient(vx - vR * 0.3, vy - vR * 0.3, 0, vx, vy, vR);
+    vg.addColorStop(0, 'rgba(232,230,228,0.50)');
+    vg.addColorStop(0.72, 'rgba(214,211,209,0.24)');
+    vg.addColorStop(1, 'rgba(196,192,190,0.10)');
+    g.fillStyle = vg;
+    g.beginPath(); g.arc(vx, vy, vR, 0, 6.283); g.fill();
+    g.strokeStyle = 'rgba(190,186,184,0.34)';
+    g.lineWidth = 1.0; g.stroke();
+  }
+
+  /* 脂滴：高亮小点 */
+  for (var lI = 0; lI < look.lipid; lI++) {
+    var lx = rng(-0.8, 0.8) * halfLen, ly = rng(-0.6, 0.6) * halfWid;
+    var lR = halfWid * rng(0.10, 0.20);
+    var lg = g.createRadialGradient(lx - lR * 0.35, ly - lR * 0.35, 0, lx, ly, lR);
+    lg.addColorStop(0, 'rgba(248,246,244,0.62)');
+    lg.addColorStop(1, 'rgba(214,210,208,0.16)');
+    g.fillStyle = lg;
+    g.beginPath(); g.arc(lx, ly, lR, 0, 6.283); g.fill();
+  }
+
+  /* ---- 细胞核：中央清晰椭圆 + 深色核仁（参考图最显著特征）---- */
+  var nucList = [];
+  for (var nI = 0; nI < look.nucleus; nI++) {
+    var offX = (look.nucleus === 1) ? rng(-0.18, 0.18) : rng(-0.55, 0.55);
+    var offY = (look.nucleus === 1) ? rng(-0.18, 0.18) : rng(-0.45, 0.45);
+    nucList.push({
+      x: offX * halfLen,
+      y: offY * halfWid,
+      /* 核也是椭圆，沿主轴方向 */
+      rx: halfLen * rng(look.nucR[0], look.nucR[1]),
+      ry: 0,
+      rot: rng(-0.35, 0.35),
+      irr: look.abnormal ? rng(1.12, 1.32) : rng(1.0, 1.06)
+    });
+    var nl = nucList[nucList.length - 1];
+    nl.ry = nl.rx * rng(0.52, 0.72);
+  }
+  for (var nJ = 0; nJ < nucList.length; nJ++) {
+    var nu = nucList[nJ];
+    g.save();
+    g.translate(nu.x, nu.y); g.rotate(nu.rot);
+    g.beginPath();
+    for (var na = 0; na <= 48; na++) {
+      var th = na / 48 * Math.PI * 2;
+      var kx = 1 + (nu.irr - 1) * 0.35 * Math.sin(th * 3);
+      var nx2 = Math.cos(th) * nu.rx * kx;
+      var ny2 = Math.sin(th) * nu.ry * kx;
+      if (na === 0) g.moveTo(nx2, ny2); else g.lineTo(nx2, ny2);
+    }
+    g.closePath();
+    var ng = g.createRadialGradient(-nu.rx * 0.22, -nu.ry * 0.22, 0, 0, 0, nu.rx * 1.06);
+    if (look.abnormal) {
+      ng.addColorStop(0, 'rgba(146,136,132,0.86)');
+      ng.addColorStop(0.60, 'rgba(124,114,112,0.84)');
+      ng.addColorStop(1, 'rgba(104,96,95,0.66)');
+    } else {
+      ng.addColorStop(0, 'rgba(164,154,147,0.82)');
+      ng.addColorStop(0.60, 'rgba(140,131,125,0.80)');
+      ng.addColorStop(1, 'rgba(118,110,106,0.62)');
+    }
+    g.fillStyle = ng; g.fill();
+    /* 核膜亮边：让核在缩略图上也能一眼看到 */
+    g.strokeStyle = 'rgba(224,219,214,0.62)';
+    g.lineWidth = 2.0; g.stroke();
+    g.strokeStyle = 'rgba(136,127,122,0.48)';
+    g.lineWidth = 1.0; g.stroke();
+
+    /* 染色质颗粒 */
+    for (var chI = 0; chI < 16; chI++) {
+      var chA = rng(0, 6.283), chD = Math.sqrt(rnd());
+      g.fillStyle = 'rgba(118,108,104,' + rng(0.10, 0.22).toFixed(3) + ')';
+      g.beginPath();
+      g.arc(Math.cos(chA) * chD * nu.rx * 0.72,
+            Math.sin(chA) * chD * nu.ry * 0.72,
+            nu.rx * rng(0.035, 0.075), 0, 6.283);
+      g.fill();
+    }
+    g.restore();
+  }
+  /* 核仁：深色致密小球（参考图里非常明显） */
+  for (var noI = 0; noI < look.nucleoli && nucList.length; noI++) {
+    var par = nucList[(rnd() * nucList.length) | 0];
+    var nox = par.x + rng(-0.30, 0.30) * par.rx;
+    var noy = par.y + rng(-0.30, 0.30) * par.ry;
+    var noR = par.rx * rng(0.34, 0.48);
+    var nog = g.createRadialGradient(nox - noR * 0.3, noy - noR * 0.3, 0, nox, noy, noR);
+    nog.addColorStop(0, 'rgba(104,94,92,0.86)');
+    nog.addColorStop(1, 'rgba(82,74,73,0.74)');
+    g.fillStyle = nog;
+    g.beginPath(); g.arc(nox, noy, noR, 0, 6.283); g.fill();
+  }
+
+  /* 胞质颗粒：细密噪点（参考图质感） */
+  for (var s = 0; s < 900; s++) {
+    var sx = rng(-0.96, 0.96) * halfLen, sy = rng(-0.94, 0.94) * halfWid;
+    g.fillStyle = 'rgba(' + (rnd() > 0.5 ? '236,234,232' : '170,166,164') + ',' +
+      rng(0.05, 0.18).toFixed(3) + ')';
+    var gsz = rng(0.5, 1.6);
+    g.fillRect(sx, sy, gsz, gsz);
+  }
+  g.restore();  /* 取消裁剪 */
+
+  /* 说明：细胞外缘的"暗边 + 亮晕"由 phaseContrast() 统一生成。
+     这里只保留一道极淡的内侧过渡，用来收住胞质边缘。 */
+  g.save();
+  g.globalAlpha = 0.20;
+  g.strokeStyle = 'rgba(150,144,140,0.7)';
+  g.lineWidth = 1.2;
+  spindlePath2(0.995);
+  g.stroke();
+  g.restore();
+
+  g.restore();
+  return c;
+}
+
+/* --- 凋亡形态：收缩变圆 + 膜出泡 + 轻微折光 ---
+   配色统一到活细胞的暖灰胞质族，只比活细胞略亮一点（不再用刺眼纯白） */
+function buildApoptotic(level) {
+  var c = mkCanvas(SPR, SPR), g = c.getContext('2d');
+  var cx = SPR / 2, cy = SPR / 2;
+  var baseR = BLOB_R * (0.78 - level * 0.20);
+  var jit = [];
+  var nJ = Math.max(1, 5 - Math.round(level * 4));
+  for (var i = 0; i < nJ; i++) {
+    jit.push({ amp: [0.10, 0.070, 0.045, 0.030, 0.018][i] * (1 - level * 0.7), ph: rng(0, 6.283) });
+  }
+  /* 越接近碎裂越亮一点点，但始终留在暖灰范围内 */
+  var lift = level * 6;
+  var grd = g.createRadialGradient(cx - baseR * 0.26, cy - baseR * 0.26, baseR * 0.05,
+    cx, cy, baseR * 1.04);
+  grd.addColorStop(0.00, 'rgb(' + (196 + lift) + ',' + (192 + lift) + ',' + (188 + lift) + ')');
+  grd.addColorStop(0.38, 'rgb(' + (184 + lift) + ',' + (180 + lift) + ',' + (176 + lift) + ')');
+  grd.addColorStop(0.72, 'rgb(' + (168 + lift) + ',' + (164 + lift) + ',' + (161 + lift) + ')');
+  grd.addColorStop(1.00, 'rgb(' + (148 + lift) + ',' + (144 + lift) + ',' + (142 + lift) + ')');
+  makeBlobPath(g, cx, cy, baseR, 40, jit);
+  g.fillStyle = grd; g.fill();
+
+  g.save();
+  makeBlobPath(g, cx, cy, baseR * 0.96, 40, jit);
+  g.clip();
+  for (var b = 0; b < 3; b++) {
+    var bx = cx + rng(-0.4, 0.4) * baseR, by = cy + rng(-0.4, 0.4) * baseR;
+    var br = baseR * rng(0.20, 0.40);
+    var bg2 = g.createRadialGradient(bx, by, 0, bx, by, br);
+    bg2.addColorStop(0, 'rgba(126,120,118,' + rng(0.07, 0.14).toFixed(3) + ')');
+    bg2.addColorStop(1, 'rgba(126,120,118,0)');
+    g.fillStyle = bg2; g.beginPath(); g.arc(bx, by, br, 0, 6.283); g.fill();
+  }
+  g.restore();
+
+  /* 膜边缘：比胞质亮一档的柔光边，表现"折光增强" */
+  g.save();
+  g.globalAlpha = 0.50 + level * 0.16;
+  g.shadowColor = 'rgba(232,228,225,0.60)';
+  g.shadowBlur = 2.2 + level * 1.6;
+  g.strokeStyle = 'rgba(216,212,208,0.92)';
+  g.lineWidth = 1.8 + level * 0.6;
+  makeBlobPath(g, cx, cy, baseR, 40, jit);
+  g.stroke();
+  g.restore();
+
+  if (level > 0.25) {
+    var nBub = Math.round(level * 7);
+    for (var k = 0; k < nBub; k++) {
+      var a = rng(0, 6.283), rr = baseR * rng(0.88, 1.06);
+      var bx2 = cx + Math.cos(a) * rr, by2 = cy + Math.sin(a) * rr;
+      var br2 = baseR * rng(0.12, 0.24);
+      var bg3 = g.createRadialGradient(bx2 - br2 * 0.3, by2 - br2 * 0.3, 0, bx2, by2, br2);
+      bg3.addColorStop(0, 'rgba(212,208,205,0.92)');
+      bg3.addColorStop(1, 'rgba(178,174,171,0.52)');
+      g.fillStyle = bg3; g.beginPath(); g.arc(bx2, by2, br2, 0, 6.283); g.fill();
+    }
+  }
+  return c;
+}
+
+/* --- 凋亡小体：残留小球，与背景略区分（保持暖灰，不刺白）--- */
+function buildBody() {
+  var SZ = 40, c = mkCanvas(SZ, SZ), g = c.getContext('2d');
+  var cx = SZ / 2, cy = SZ / 2, r0 = SZ * 0.30;
+  var grd = g.createRadialGradient(cx - r0 * 0.34, cy - r0 * 0.34, 0, cx, cy, r0 * 1.05);
+  grd.addColorStop(0.00, 'rgb(206,202,198)');
+  grd.addColorStop(0.52, 'rgb(190,186,182)');
+  grd.addColorStop(1.00, 'rgb(166,162,159)');
+  g.fillStyle = grd; g.beginPath(); g.arc(cx, cy, r0, 0, 6.283); g.fill();
+  g.save();
+  g.shadowColor = 'rgba(228,225,222,0.65)'; g.shadowBlur = 2.0;
+  g.strokeStyle = 'rgba(210,206,202,0.88)'; g.lineWidth = 1.4;
+  g.beginPath(); g.arc(cx, cy, r0, 0, 6.283); g.stroke();
+  g.restore();
+  return c;
+}
+
+/* --- 坏死形态：肿胀 + 灰化 + 颗粒化降解 ---
+   关键：不能画成"半透明灰雾"（看起来像脏污）。
+   做法：接近不透明的实体 + 细密颗粒 + 碎裂核 + 不规则边缘。 --- */
+function buildNecrotic(level) {
+  var c = mkCanvas(SPR, SPR), g = c.getContext('2d');
+  var cx = SPR / 2, cy = SPR / 2;
+  var baseR = BLOB_R * (0.94 + level * 0.09);   // 只轻微肿胀，避免变成大团
+  var jit = [];
+  for (var i = 0; i < 4; i++) {
+    jit.push({ amp: [0.11, 0.075, 0.050, 0.032][i], ph: rng(0, 6.283) });
+  }
+  /* 基色：比活细胞暗一档的暖灰，接近不透明 */
+  var g0 = Math.round(152 - level * 16);
+  var grd = g.createRadialGradient(cx - baseR * 0.2, cy - baseR * 0.22, baseR * 0.06,
+    cx, cy, baseR * 1.02);
+  grd.addColorStop(0.00, 'rgba(' + (g0 + 8) + ',' + (g0 + 5) + ',' + (g0 + 3) + ',0.93)');
+  grd.addColorStop(0.55, 'rgba(' + g0 + ',' + (g0 - 3) + ',' + (g0 - 5) + ',0.93)');
+  grd.addColorStop(0.88, 'rgba(' + (g0 - 16) + ',' + (g0 - 18) + ',' + (g0 - 19) + ',0.90)');
+  grd.addColorStop(1.00, 'rgba(' + (g0 - 24) + ',' + (g0 - 26) + ',' + (g0 - 27) + ',0.72)');
+  makeBlobPath(g, cx, cy, baseR, 44, jit);
+  g.fillStyle = grd; g.fill();
+
+  g.save();
+  makeBlobPath(g, cx, cy, baseR * 0.95, 44, jit);
+  g.clip();
+
+  /* 降解斑块：深色不均区域 */
+  for (var b = 0; b < 8; b++) {
+    var bx = cx + rng(-0.58, 0.58) * baseR, by = cy + rng(-0.58, 0.58) * baseR;
+    var bR = baseR * rng(0.16, 0.36);
+    var bg = g.createRadialGradient(bx, by, 0, bx, by, bR);
+    bg.addColorStop(0, 'rgba(' + (g0 - 30) + ',' + (g0 - 32) + ',' + (g0 - 33) + ',0.34)');
+    bg.addColorStop(1, 'rgba(' + (g0 - 30) + ',' + (g0 - 32) + ',' + (g0 - 33) + ',0)');
+    g.fillStyle = bg; g.beginPath(); g.arc(bx, by, bR, 0, 6.283); g.fill();
+  }
+
+  /* 颗粒化：细密深色/浅色点，做出"降解成碎屑"的质感 */
+  for (var gr = 0; gr < 420; gr++) {
+    var gx2 = cx + rng(-0.9, 0.9) * baseR, gy2 = cy + rng(-0.9, 0.9) * baseR;
+    var bright2 = rng() > 0.34;
+    g.fillStyle = 'rgba(' + (bright2 ? (g0 + 26) + ',' + (g0 + 23) + ',' + (g0 + 20)
+                                     : (g0 - 40) + ',' + (g0 - 42) + ',' + (g0 - 43)) + ',' +
+      rng(0.10, 0.30).toFixed(3) + ')';
+    var q2 = rng(0.8, 2.4);
+    g.fillRect(gx2, gy2, q2, q2);
+  }
+
+  /* 碎裂的核：几块不规则深色碎片 */
+  for (var kk = 0; kk < 4; kk++) {
+    var kx2 = cx + rng(-0.32, 0.32) * baseR, ky2 = cy + rng(-0.32, 0.32) * baseR;
+    g.fillStyle = 'rgba(' + (g0 - 50) + ',' + (g0 - 53) + ',' + (g0 - 54) + ',0.58)';
+    g.beginPath();
+    g.ellipse(kx2, ky2, baseR * rng(0.11, 0.19), baseR * rng(0.08, 0.14),
+      rng(0, 3.14), 0, 6.283);
+    g.fill();
+  }
+  g.restore();
+
+  /* 膜：不连续的暗边（膜已破裂，不该有完整亮环） */
+  g.save();
+  g.globalAlpha = 0.34 - level * 0.14;
+  g.strokeStyle = 'rgba(' + (g0 - 44) + ',' + (g0 - 46) + ',' + (g0 - 47) + ',0.9)';
+  g.lineWidth = 1.4;
+  makeBlobPath(g, cx, cy, baseR * 0.99, 44, jit);
+  g.stroke();
+  g.restore();
+  return c;
+}
+
+/* --- 彩色轮廓层：与细胞体同一形态，只描一圈类型色 ---
+   替代原来"把细胞圈起来"的圆环，避免遮挡细胞内部结构 */
+function buildOutline(typeKey, stretch, rot, ph) {
+  var look = CELL_LOOK[typeKey] || CELL_LOOK.normal;
+  var c = mkCanvas(SPR, SPR), g = c.getContext('2d');
+  var cx = SPR / 2, cy = SPR / 2;
+  var halfLen = BLOB_R * 0.90;
+  var halfWid = halfLen / stretch;
+  g.save();
+  g.translate(cx, cy); g.rotate(rot);
+  g.lineJoin = 'round';
+  g.strokeStyle = OUTLINE_COLORS[typeKey] || OUTLINE_COLORS.normal;
+  g.lineWidth = OUTLINE_W;
+  spindlePath(g, halfLen, halfWid, look.tip, look.jitAmp, ph, 1.0);
+  g.stroke();
+  g.restore();
+  return c;
+}
+
+/* --- 溶瘤病毒颗粒（可见）：青蓝色二十面体外壳 + 表面刺突 ---
+   在偏暗的暖灰培养皿里，青蓝是唯一冷色，一眼能追踪它们的扩散路径。 */
+function buildVirusParticle(variant) {
+  var SZ = 40, c = mkCanvas(SZ, SZ), g = c.getContext('2d');
+  var cx = SZ / 2, cy = SZ / 2;
+  var r0 = SZ * (0.22 + (variant % 3) * 0.022);
+
+  /* 外壳：中心亮、边缘深的球体感（颜色更饱和，避免糊成白点） */
+  var grd = g.createRadialGradient(cx - r0 * 0.36, cy - r0 * 0.36, 0, cx, cy, r0 * 1.06);
+  grd.addColorStop(0.00, 'rgba(196,236,246,0.96)');
+  grd.addColorStop(0.36, 'rgba(86,190,214,0.96)');
+  grd.addColorStop(0.74, 'rgba(40,140,170,0.94)');
+  grd.addColorStop(1.00, 'rgba(24,96,124,0.82)');
+  g.fillStyle = grd;
+  g.beginPath(); g.arc(cx, cy, r0, 0, 6.283); g.fill();
+
+  /* 二十面体的面片棱（病毒衣壳特征） */
+  g.save();
+  g.beginPath(); g.arc(cx, cy, r0 * 0.99, 0, 6.283); g.clip();
+  g.strokeStyle = 'rgba(228,250,254,0.62)';
+  g.lineWidth = 0.85;
+  var faces = 5;
+  for (var f = 0; f < faces; f++) {
+    var a0 = f / faces * Math.PI * 2 + variant * 0.7;
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(a0) * r0, cy + Math.sin(a0) * r0);
+    g.stroke();
+  }
+  g.beginPath();
+  g.arc(cx, cy, r0 * 0.55, 0, 6.283);
+  g.strokeStyle = 'rgba(228,250,254,0.42)';
+  g.stroke();
+  g.restore();
+
+  /* 表面刺突：短小的突起（吸附细胞的"触手"） */
+  var nSpike = 9;
+  for (var s = 0; s < nSpike; s++) {
+    var a = s / nSpike * Math.PI * 2 + variant * 1.3;
+    var sx = cx + Math.cos(a) * r0, sy = cy + Math.sin(a) * r0;
+    g.beginPath();
+    g.moveTo(sx, sy);
+    g.lineTo(cx + Math.cos(a) * (r0 + SZ * 0.05), cy + Math.sin(a) * (r0 + SZ * 0.05));
+    g.strokeStyle = 'rgba(130,214,232,0.82)';
+    g.lineWidth = 1.15;
+    g.lineCap = 'round';
+    g.stroke();
+  }
+  return c;
+}
+
+/* --- 病毒感染态：细胞质里出现病毒复制工厂（嗜酸性包涵体）--- */
+function buildInfectedOverlay(stretch, rot, ph) {
+  var c = mkCanvas(SPR, SPR), g = c.getContext('2d');
+  var cx = SPR / 2, cy = SPR / 2;
+  var halfLen = BLOB_R * 0.90;
+  var halfWid = halfLen / stretch;
+  g.save();
+  g.translate(cx, cy); g.rotate(rot);
+
+  /* 细胞内病毒颗粒聚集（裁在细胞轮廓里） */
+  g.save();
+  spindlePath(g, halfLen, halfWid, 0.44, 0.45, ph, 0.96);
+  g.clip();
+  for (var i = 0; i < 26; i++) {
+    var px = rng(-0.78, 0.78) * halfLen;
+    var py = rng(-0.7, 0.7) * halfWid;
+    var pr = halfWid * rng(0.055, 0.12);
+    var vg = g.createRadialGradient(px - pr * 0.3, py - pr * 0.3, 0, px, py, pr);
+    vg.addColorStop(0, 'rgba(206,244,250,0.88)');
+    vg.addColorStop(0.6, 'rgba(104,198,218,0.78)');
+    vg.addColorStop(1, 'rgba(56,146,172,0.50)');
+    g.fillStyle = vg;
+    g.beginPath(); g.arc(px, py, pr, 0, 6.283); g.fill();
+  }
+  /* 包涵体：感染晚期细胞内的病毒工厂，偏亮的小团 */
+  for (var b = 0; b < 3; b++) {
+    var bx = rng(-0.42, 0.42) * halfLen, by = rng(-0.38, 0.38) * halfWid;
+    var bR = halfWid * rng(0.24, 0.42);
+    var bg = g.createRadialGradient(bx, by, 0, bx, by, bR);
+    bg.addColorStop(0, 'rgba(214,246,252,0.50)');
+    bg.addColorStop(1, 'rgba(214,246,252,0)');
+    g.fillStyle = bg;
+    g.beginPath(); g.arc(bx, by, bR, 0, 6.283); g.fill();
+  }
+  g.restore();
+  g.restore();
+  return c;
+}
+
+/* --- 生成全部精灵（按细胞类型分组）--- */
+var APOP = [], BODY = [], NECRO = [], VIRION = [], INFECT_OVER = [];
+
+/* 把一张母版缩放成整套桶 */
+function makeBuckets(src) {
+  var row = [];
+  for (var bi = 0; bi < BUCKET_SCALES.length; bi++) {
+    var sc = BUCKET_SCALES[bi];
+    var sz = Math.max(2, Math.round(SPR * sc));
+    var t = mkCanvas(sz, sz);
+    var tg = t.getContext('2d');
+    tg.imageSmoothingEnabled = true;
+    tg.imageSmoothingQuality = 'high';
+    tg.drawImage(src, 0, 0, sz, sz);
+    row.push(t);
+  }
+  return row;
+}
+
+/* 构建一个类型的全部变体 */
+function buildTypeSprites(key, perType, onTick) {
+  spriteBuckets[key] = [];
+  outlineBuckets[key] = [];
+  spriteMeta[key] = [];
+  var infRows = [];
+  var pho = PHASE_OPTS[key] || PHASE_OPTS.normal;
+  for (var v = 0; v < perType; v++) {
+    var raw = buildSprite(key);
+    /* 关键一步：把手工绘制的细胞过一遍相衬成像管线，
+       生成物理正确的边缘光晕与厚度明暗（loading 时一次，运行零开销） */
+    var src = phaseContrast(raw, pho);
+    var st = _lastStretch, rt = _lastRot;
+    var ph = st * 2.3 + rt * 1.7;
+    spriteBuckets[key].push(makeBuckets(src));
+    spriteMeta[key].push({ stretch: st, rot: rt, ph: ph });
+    outlineBuckets[key].push(makeBuckets(buildOutline(key, st, rt, ph)));
+    infRows.push(makeBuckets(buildOutline('infected', st, rt, ph)));
+    if (onTick) onTick(v, perType);
+  }
+  /* 感染态轮廓：与本体一一对应，保证换色时不跳形 */
+  outlineBuckets[key + ':infected'] = infRows;
+}
+
+function buildAllSprites() {
+  typeof onBuildProgress === 'function' && onBuildProgress(0);
+  for (var ti = 0; ti < TYPE_KEYS.length; ti++) {
+    (function (ti2) {
+      var key = TYPE_KEYS[ti2];
+      var perType = (key === 'tumor' || key === 'mutant') ? VARIANTS : Math.round(VARIANTS * 0.7);
+      buildTypeSprites(key, perType);
+      typeof onBuildProgress === 'function' && onBuildProgress((ti2 + 1) / TYPE_KEYS.length * 0.85);
+    })(ti);
+  }
+  for (var v = 0; v < 5; v++) APOP.push(buildApoptotic(v / 4));
+  for (var b = 0; b < 6; b++) BODY.push(buildBody());
+  for (var n = 0; n < 4; n++) NECRO.push(buildNecrotic(n / 3));
+  for (var vp2 = 0; vp2 < 5; vp2++) VIRION.push(buildVirusParticle(vp2));
+  for (var io2 = 0; io2 < 6; io2++) {
+    var st3 = rng(2.0, 2.8), rt3 = rng(0, Math.PI);
+    INFECT_OVER.push(buildInfectedOverlay(st3, rt3, st3 * 2.3 + rt3 * 1.7));
+  }
+  typeof onBuildProgress === 'function' && onBuildProgress(1);
+}
+/* 取某类型的精灵行 */
+function spriteRowOf(typeKey, sprIdx) {
+  var arr = spriteBuckets[typeKey];
+  if (!arr || !arr.length) arr = spriteBuckets.normal;
+  if (!arr || !arr.length) return null;
+  return arr[sprIdx % arr.length];
+}
+function outlineRowOf(typeKey, sprIdx) {
+  var arr = outlineBuckets[typeKey];
+  if (!arr || !arr.length) arr = outlineBuckets.normal;
+  if (!arr || !arr.length) return null;
+  return arr[sprIdx % arr.length];
+}
+function bucketFor(scale) {
+  var step = BUCKET_SCALES[1] - BUCKET_SCALES[0];
+  var bi = Math.round((scale - BUCKET_SCALES[0]) / step);
+  if (bi < 0) bi = 0;
+  if (bi >= BUCKET_SCALES.length) bi = BUCKET_SCALES.length - 1;
+  return bi;
+}
+
+/* ============================================================
+   5. 背景（斑驳培养皿 + 玻璃质感）
+   ============================================================ */
+var bgCanvas;
+function buildBackground() {
+  var c = mkCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = 'rgb(' + BG_RGB.join(',') + ')';
+  g.fillRect(0, 0, W, H);
+
+  function layer(scale, amp, positive) {
+    var sw = Math.max(2, Math.floor(W / scale)), sh = Math.max(2, Math.floor(H / scale));
+    var t = mkCanvas(sw, sh), tg = t.getContext('2d');
+    var img = tg.createImageData(sw, sh);
+    for (var i = 0; i < sw * sh; i++) {
+      var n = (rnd() * 2 - 1) * 128 + 128;
+      img.data[i * 4] = n; img.data[i * 4 + 1] = n; img.data[i * 4 + 2] = n;
+      img.data[i * 4 + 3] = 255;
+    }
+    tg.putImageData(img, 0, 0);
+    g.save();
+    g.globalCompositeOperation = positive ? 'lighter' : 'multiply';
+    g.globalAlpha = amp / 0.5;
+    g.drawImage(t, 0, 0, W, H);
+    g.restore();
+  }
+  /* 对比度柔和（参考图 std≈18.7），所以噪声幅度压低 */
+  layer(44, 0.016, true);
+  layer(16, 0.018, false);
+  layer(5, 0.014, true);
+
+  /* 培养液里的细小悬浮颗粒（参考图中可见的亮点） */
+  for (var d2 = 0; d2 < 260; d2++) {
+    var dx = rnd() * W, dy = rnd() * H;
+    var dr = rng(0.8, 2.6);
+    var bright = rnd() > 0.45;
+    g.fillStyle = bright
+      ? 'rgba(238,236,233,' + rng(0.10, 0.30).toFixed(3) + ')'
+      : 'rgba(168,164,160,' + rng(0.06, 0.16).toFixed(3) + ')';
+    g.beginPath(); g.arc(dx, dy, dr, 0, 6.283); g.fill();
+  }
+
+  /* 轻微暗角（比之前柔和，参考图边缘不明显） */
+  var vg = g.createRadialGradient(CX, CY, RAD * 0.62, CX, CY, RAD * 1.16);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(60,48,40,0.16)');
+  g.fillStyle = vg;
+  g.fillRect(0, 0, W, H);
+  bgCanvas = c;
+}
+
+/* ============================================================
+   6. 世界
+   ============================================================ */
+var cells = [], vessels = [], step = 0, history = [];
+/* 游离的病毒颗粒：在培养液里做布朗漂移，碰到敏感细胞就吸附并感染 */
+var virions = [];
+var burstFx = [];          // 细胞裂解的爆发特效（扩散光环）
+var virionBurstTick = 0;   // 病毒投放时的注入提示
+var MAX_VIRIONS = 900;     // 颗粒上限（超过则不再生成，避免画面淹没）
+var TARGET_CELLS = 86;                        // 参考图细胞较稀疏，有明显间隙
+var DISH_AREA = Math.PI * RAD * RAD;
+var CELL_AREA = 30 * 30 * Math.PI * 0.55;     // 纺锤形细胞占地更大
+
+function inDish(x, y, m) {
+  var dx = x - CX, dy = y - CY;
+  return Math.sqrt(dx * dx + dy * dy) < RAD - (m || 0);
+}
+
+function newCell(x, y, type) {
+  var imm = (type === 'immune');
+  /* 纺锤形细胞体积更大：正常/肿瘤 22~30，免疫 11~14 */
+  var r = imm ? rng(11, 14) : rng(22, 30);
+  /* 形态变体：按类型变体数取模，保证同类型细胞也是多种形态而非一模一样 */
+  var nVar = (type === 'tumor' || type === 'mutant') ? VARIANTS : Math.round(VARIANTS * 0.7);
+  return {
+    x: x, y: y, px: x, py: y,
+    r: r, pr: r * 0.15,
+    type: type,
+    spr: (rnd() * nVar) | 0,
+    sc: 1, age: 0, hyp: 0, nCount: 0, neo: 1,
+    dying: false, deathKind: null, dPhase: 0, dT: 0,
+    dMorph: 0, shards: null, fullyGone: false,
+    /* --- 溶瘤病毒感染状态 --- */
+    infected: false,        // 是否已被感染
+    virusLoad: 0,           // 胞内病毒载量，累积到 1 即裂解
+    virusSpr: (rnd() * 6) | 0,  // 感染覆盖层变体
+    virusResist: type === 'normal' ? 1 : (type === 'mutant' ? 0.45 : 0.18)  // 敏感性：肿瘤最易感
+  };
+}
+
+function resetDish() {
+  seedState = 20261028;
+  cells = []; history = []; step = 0;
+  vessels = []; virions = []; burstFx = [];
+  var nv = 6;
+  for (var i = 0; i < nv; i++) {
+    var a = i / nv * Math.PI * 2 + 0.3;
+    vessels.push({
+      x0: CX + Math.cos(a) * RAD * 0.99, y0: CY + Math.sin(a) * RAD * 0.99,
+      x1: CX + Math.cos(a) * RAD * rng(0.34, 0.62),
+      y1: CY + Math.sin(a) * RAD * rng(0.34, 0.62)
+    });
+  }
+  var tries = 0;
+  while (cells.length < TARGET_CELLS && tries < 40000) {
+    tries++;
+    var a2 = rng(0, 6.283), r2 = Math.sqrt(rnd()) * RAD * 0.97;
+    var x = CX + Math.cos(a2) * r2, y = CY + Math.sin(a2) * r2;
+    if (!inDish(x, y, 6)) continue;
+    var ok = true;
+    for (var j = 0; j < cells.length; j++) {
+      var dx = cells[j].x - x, dy = cells[j].y - y;
+      if (dx * dx + dy * dy < 62 * 62) { ok = false; break; }
+    }
+    if (!ok) continue;
+    cells.push(newCell(x, y, 'normal'));
+  }
+  cells.push(newCell(CX + rng(-28, 28), CY + rng(-28, 28), 'tumor'));
+  cells.push(newCell(CX + rng(-40, 40), CY + rng(-40, 40), 'tumor'));
+  syncSpace();
+  /* 注意：这里必须用非静默刷新。
+     早先用 updateMetrics(true) 会导致"暂停状态下点重置，数字和轮次都不动"，
+     因为静默模式只更新内部数据、不碰 DOM。 */
+  updateMetrics();
+  drawChart();
+}
+
+/* --- 空间哈希 --- */
+var GRID_SZ = 44, grid = new Map(), cbSkip = null;
+function gkey(gx, gy) { return gx * 100000 + gy; }
+function syncSpace() {
+  grid.clear();
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone) continue;
+    var k = gkey(Math.floor(c.x / GRID_SZ), Math.floor(c.y / GRID_SZ));
+    var arr = grid.get(k);
+    if (arr) arr.push(c); else grid.set(k, [c]);
+  }
+}
+function forEachNear(x, y, R, cb) {
+  var gx0 = Math.floor((x - R) / GRID_SZ), gx1 = Math.floor((x + R) / GRID_SZ);
+  var gy0 = Math.floor((y - R) / GRID_SZ), gy1 = Math.floor((y + R) / GRID_SZ);
+  var R2 = R * R;
+  for (var gx = gx0; gx <= gx1; gx++) {
+    for (var gy = gy0; gy <= gy1; gy++) {
+      var arr = grid.get(gkey(gx, gy));
+      if (!arr) continue;
+      for (var i = 0; i < arr.length; i++) {
+        var o = arr[i];
+        if (o === cbSkip || o.fullyGone) continue;
+        var dx = o.x - x, dy = o.y - y;
+        if (dx * dx + dy * dy < R2) { if (cb(o) === false) return; }
+      }
+    }
+  }
+}
+function countNear(c, R) {
+  var n = 0;
+  cbSkip = c;
+  forEachNear(c.x, c.y, R, function () { n++; });
+  cbSkip = null;
+  return n;
+}
+
+/* ============================================================
+   7.5 溶瘤病毒系统
+   ------------------------------------------------------------
+   生物学要点（教学上必须准确）：
+   - 溶瘤病毒（如呼肠孤病毒、腺病毒改造株）偏好感染肿瘤细胞：
+     肿瘤细胞抗病毒干扰素通路常有缺陷，所以对病毒更敏感。
+   - 病毒进入细胞 → 复制 → 细胞裂解 → 释放大量新病毒 → 继续感染邻居。
+   - 免疫系统同时会清除游离病毒和已感染细胞，所以免疫强度高时病毒疗法效果会打折。
+   - 化疗会一并杀伤细胞，与病毒叠加会造成"正常细胞被过度清除"。
+   ============================================================ */
+
+/* 投放病毒：在培养皿里撒一批新颗粒
+   fresh=true 表示"人工投放"，给一段免疫期让它先能看见、能扩散，
+   否则刚生成就被清除率吃掉，玩家会觉得"点了没反应"。 */
+function spawnVirions(n, x, y, spread, fresh) {
+  for (var i = 0; i < n && virions.length < MAX_VIRIONS; i++) {
+    var a = rng(0, 6.283);
+    var rr = spread ? Math.sqrt(rnd()) * spread : Math.sqrt(rnd()) * RAD * 0.8;
+    var vx = (x == null ? CX : x) + Math.cos(a) * rr;
+    var vy = (y == null ? CY : y) + Math.sin(a) * rr;
+    if (!inDish(vx, vy, 4)) { vx = CX + rng(-30, 30); vy = CY + rng(-30, 30); }
+    virions.push({
+      x: vx, y: vy, px: vx, py: vy,
+      vx: rng(-0.35, 0.35), vy: rng(-0.35, 0.35),   // 布朗漂移速度
+      spr: (rnd() * 5) | 0,
+      r: rng(4.0, 6.2),      // 显示半径
+      age: 0,
+      /* life 衰减到 0 即失活（病毒在培养液里会降解）。
+         人工投放的给 3 倍寿命，保证玩家看得见扩散过程。 */
+      life: fresh ? 3.0 : 1.0,
+      bound: false           // 是否已吸附到细胞上
+    });
+  }
+}
+
+/* 病毒颗粒的每步更新：漂移 + 吸附 + 失活 */
+function updateVirions() {
+  /* 病毒在培养液里自然失活（真实病毒清除率 ~2.5%/小时）；
+     营养充足时细胞代谢活跃，病毒存活略久 */
+  var decay = 0.0022 - (E.nutrient / 100) * 0.0010;
+  for (var i = virions.length - 1; i >= 0; i--) {
+    var v = virions[i];
+    v.age++;
+    v.life -= decay;
+    if (v.life <= 0) { virions.splice(i, 1); continue; }
+
+    /* 布朗漂移 + 轻微趋化：游离病毒对邻近细胞有吸附倾向，
+       真实体系里这是病毒颗粒与细胞膜受体随机碰撞的结果。
+       趋化刻意做得很弱 —— 太强会让颗粒在个别细胞上结团，不像扩散。 */
+    v.vx += rng(-0.14, 0.14);
+    v.vy += rng(-0.14, 0.14);
+    var near = null, nd2 = 1e9;
+    forEachNear(v.x, v.y, 70, function (o) {
+      if (o.dying || o.fullyGone || o.infected) return;
+      if (o.type === 'immune') return;
+      var dd = (o.x - v.x) * (o.x - v.x) + (o.y - v.y) * (o.y - v.y);
+      if (dd < nd2) { nd2 = dd; near = o; }
+    });
+    if (near) {
+      var dd2 = Math.sqrt(nd2) || 1;
+      v.vx += (near.x - v.x) / dd2 * 0.012;
+      v.vy += (near.y - v.y) / dd2 * 0.012;
+    }
+    /* 随机热扰动，避免颗粒长时间贴在同一处 */
+    v.vx += rng(-0.05, 0.05);
+    v.vy += rng(-0.05, 0.05);
+    v.vx *= 0.93; v.vy *= 0.93;
+    var nx = v.x + v.vx, ny = v.y + v.vy;
+    if (inDish(nx, ny, 3)) { v.x = nx; v.y = ny; }
+    else { v.vx *= -0.7; v.vy *= -0.7; }
+
+    /* 吸附检测：只对未被感染的、且不是免疫细胞的细胞生效 */
+    var hit = null;
+    forEachNear(v.x, v.y, v.r + 30, function (o) {
+      if (o.dying || o.fullyGone || o.infected) return;
+      if (o.type === 'immune') return;         // 免疫细胞清除病毒，不会被感染
+      hit = o; return false;
+    });
+    if (hit) {
+      /* 靶向性：这是溶瘤病毒的核心机制 —— 肿瘤细胞抗病毒干扰素通路有缺陷，
+         所以对病毒远比对正常细胞敏感（真实数据里易感性差 3~5 个数量级）。
+         正常细胞 virusResist=1 → chance=0，等于不被感染；
+         被正常细胞吸附的病毒会失活（被干扰素反应清除）。 */
+      var chance = 0.92 * (1 - hit.virusResist);
+      if (rnd() < chance) {
+        hit.infected = true;
+        hit.virusLoad = 0.06;
+        virions.splice(i, 1);
+        continue;
+      } else if (hit.virusResist >= 1 && rnd() < 0.30) {
+        /* 病毒撞上不易感的正常细胞 → 大概率被清除 */
+        virions.splice(i, 1);
+        continue;
+      }
+    }
+  }
+}
+
+/* 已感染细胞：病毒载量累积 → 裂解 → 释放新病毒 */
+function stepInfection(c2) {
+  if (!c2.infected || c2.dying) return;
+  /* 复制速率：营养充足（细胞代谢旺盛）时更快。
+     这是溶瘤病毒"选择性"的第二个关键 ——
+     肿瘤细胞抗病毒干扰素通路缺陷，病毒能在其中高效复制；
+     正常细胞会启动干扰素反应抑制病毒，复制极慢、多数中途凋亡清除。 */
+  var isTumor = (c2.type === 'tumor' || c2.type === 'mutant');
+  var rate = 0.048 + (E.nutrient / 100) * 0.026;
+  if (!isTumor) rate *= 0.22;              // 正常细胞内复制效率极低
+  c2.virusLoad += rate;
+
+  /* 免疫系统会识别并清除已感染细胞（这就是"病毒疗法怕免疫"的原因） */
+  if (E.immune > 0 && rnd() < E.immune / 100 * 0.010) {
+    c2.dying = true; c2.deathKind = 'apoptosis';
+    return;
+  }
+
+  /* 正常细胞被感染后，多数会被干扰素反应终止感染并凋亡清除 */
+  if (!isTumor && rnd() < 0.030) {
+    c2.dying = true; c2.deathKind = 'apoptosis';
+    return;
+  }
+
+  /* 载量满 → 裂解（裂解性死亡，病毒在此刻大量释放） */
+  if (c2.virusLoad >= 1) {
+    c2.dying = true;
+    c2.deathKind = 'lysis';          // 裂解：区别于凋亡与坏死
+    c2.lytic = true;
+  }
+}
+
+/* 细胞裂解时：爆发释放新病毒
+   真实溶瘤病毒一个肿瘤细胞可释放 ~1350 个病毒颗粒（正常细胞 ~1000）。
+   画面上按比例缩到"看得清又不淹没屏幕"的量级，但相对关系保持一致：
+   肿瘤细胞释放量 > 正常细胞。 */
+function burstVirions(c2) {
+  var isTumor = (c2.type === 'tumor' || c2.type === 'mutant');
+  var base = isTumor ? 20 : 12;
+  var n = base + ((rnd() * 8) | 0);
+  spawnVirions(n, c2.x, c2.y, c2.r * 2.4);
+}
+
+/* ============================================================
+   7. 演化引擎
+   ============================================================ */
+function simStep() {
+  step++;
+
+  /* 免疫细胞投放 */
+  if (E.immune > 0 && rnd() < E.immune / 100 * 0.85 && cells.length < 1100) {
+    var nImm = 1 + ((E.immune / 100) * 2.4 * rnd() | 0);
+    for (var ii = 0; ii < nImm; ii++) {
+      var a = rng(0, 6.283), r = rng(0.50, 0.96) * RAD;
+      var ix = CX + Math.cos(a) * r, iy = CY + Math.sin(a) * r;
+      if (inDish(ix, iy, 8)) cells.push(newCell(ix, iy, 'immune'));
+    }
+  }
+
+  /* 病毒投放：按环境因子的强度持续补给游离颗粒 */
+  if (E.virus > 0 && virions.length < MAX_VIRIONS) {
+    if (rnd() < E.virus / 100 * 0.55) {
+      spawnVirions(1 + ((E.virus / 100) * 3 * rnd() | 0), null, null, 0);
+      virionBurstTick = 6;      // 用于在画面上做一次轻微的"注入"提示
+    }
+  }
+
+  /* 游离病毒更新 + 感染推进（降频，节省算力） */
+  updateVirions();
+  if (step % 2 === 0) {
+    for (var vi = 0; vi < cells.length; vi++) stepInfection(cells[vi]);
+  }
+
+  var density = cells.length / DISH_AREA;
+
+  /* 邻居计数（降频） */
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone) continue;
+    if (step % 4 === 1 || c.nCount === 0) c.nCount = countNear(c, c.r * 2.05);
+  }
+
+  /* 免疫目标（降频） */
+  var preyList = [];
+  if (step % 4 === 1) {
+    for (var q = 0; q < cells.length; q++) {
+      var cc = cells[q];
+      if ((cc.type === 'tumor' || cc.type === 'mutant') && !cc.dying && !cc.fullyGone) {
+        preyList.push(cc);
+      }
+    }
+  }
+
+  var add = [];
+
+  for (var k = 0; k < cells.length; k++) {
+    var c2 = cells[k];
+    if (c2.fullyGone) continue;
+    c2.age++;
+    if (c2.dying) continue;
+
+    /* 缺氧 → 坏死 */
+    var o2 = localOxygen(c2);
+    var tol = c2.type === 'normal' ? 0.15 : (c2.type === 'mutant' ? 0.055 : 0.095);
+    if (o2 < tol) {
+      c2.hyp += 0.15;
+      if (c2.hyp > 1) { c2.dying = true; c2.deathKind = 'necrosis'; continue; }
+    } else {
+      c2.hyp = Math.max(0, c2.hyp - 0.05);
+    }
+
+    /* 化疗：抑制增殖 + 诱导凋亡，肿瘤更敏感 */
+    if (E.chemo > 0 && c2.type !== 'immune') {
+      var dose = Math.pow(E.chemo / 100, 1.15);
+      var vuln = c2.type === 'normal' ? 0.14 : (c2.type === 'mutant' ? 0.62 : 1.0);
+      if (rnd() < dose * 0.15 * vuln) {
+        c2.dying = true; c2.deathKind = 'apoptosis';
+        continue;
+      }
+    }
+
+    /* 免疫细胞行为 */
+    if (c2.type === 'immune') {
+      var prey = null, bd = 1e9;
+      if (preyList.length) {
+        var scan = Math.min(preyList.length, 60);
+        var off = (rnd() * preyList.length) | 0;
+        for (var s2 = 0; s2 < scan; s2++) {
+          var oc = preyList[(off + s2) % preyList.length];
+          if (oc.fullyGone || oc.dying) continue;
+          var d2 = (oc.x - c2.x) * (oc.x - c2.x) + (oc.y - c2.y) * (oc.y - c2.y);
+          if (d2 < bd) { bd = d2; prey = oc; }
+        }
+      }
+      if (prey) {
+        var dd = Math.sqrt(bd) || 1;
+        c2.x += (prey.x - c2.x) / dd * 2.4;
+        c2.y += (prey.y - c2.y) / dd * 2.4;
+        if (dd < c2.r + prey.r && rnd() < 0.55 + E.immune / 300) {
+          prey.dying = true; prey.deathKind = 'apoptosis';
+        }
+        c2.age += 1.7;
+        if (c2.age > 150) { c2.dying = true; c2.deathKind = 'apoptosis'; }
+      } else if (c2.age > 70) {
+        c2.dying = true; c2.deathKind = 'apoptosis';
+      }
+      continue;
+    }
+
+    /* 增殖：接触抑制 + 空间容量
+       注意：被病毒感染的细胞会停止分裂（病毒劫持了宿主转录/翻译机器，
+       真实溶瘤病毒正是靠这一点抑制肿瘤生长），所以感染后跳过增殖。 */
+    var contact = c2.nCount;
+    var limit = c2.type === 'normal' ? 3 : (c2.type === 'mutant' ? 8 : 5);
+    var nutr = E.nutrient / 100;
+    var baseP = c2.type === 'normal' ? 0.16 * nutr
+              : (c2.type === 'mutant' ? 0.42 * nutr : 0.32 * nutr);
+    var confluence = Math.min(1.15, cells.length * CELL_AREA / DISH_AREA);
+    var crowd = Math.max(0.04, 1 - Math.pow(Math.max(0, confluence - 0.10) / 0.90, 2.0));
+
+    if (!c2.infected && contact < limit && rnd() < baseP * crowd && cells.length < 900) {
+      var spot = freeSpotNear(c2, c2.r * 1.72);
+      if (spot) {
+        var nt = c2.type;
+        if (c2.type === 'normal' && rnd() < E.mutation / 100 * 0.055) nt = 'tumor';
+        else if (c2.type === 'tumor' && rnd() < E.mutation / 100 * 0.035) nt = 'mutant';
+        var ch = newCell(spot.x, spot.y, nt);
+        ch.r = c2.r * rng(0.92, 1.05);
+        ch.pr = ch.r * 0.15;
+        add.push(ch);
+      }
+    }
+
+    /* 自发突变 */
+    if (c2.type === 'normal' && rnd() < E.mutation / 100 * 0.010) c2.type = 'tumor';
+    else if (c2.type === 'tumor' && rnd() < E.mutation / 100 * 0.006) c2.type = 'mutant';
+  }
+
+  for (var z = 0; z < add.length; z++) cells.push(add[z]);
+
+  relax(0.22);
+
+  /* 清除 */
+  var alive = [];
+  for (var m = 0; m < cells.length; m++) {
+    if (!cells[m].fullyGone) alive.push(cells[m]);
+  }
+  if (alive.length !== cells.length) cells = alive;
+  syncSpace();
+
+  /* 曲线 */
+  var tot = 0, tt = 0;
+  for (var y = 0; y < cells.length; y++) {
+    var cy2 = cells[y];
+    if (cy2.fullyGone) continue;
+    tot++;
+    if (cy2.type === 'tumor' || cy2.type === 'mutant') tt++;
+  }
+  history.push({ tot: tot, tum: tt });
+  if (history.length > 340) history.shift();
+
+  updateMetrics();
+  tickMission();
+  narrate();
+}
+
+/* 组织松弛：细胞互相排开并填补空隙 */
+function relax(f) {
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone || c.dying || c.type === 'immune') continue;
+    var mx = 0, my = 0, cnt = 0;
+    cbSkip = c;
+    forEachNear(c.x, c.y, c.r * 2.5, function (o) {
+      if (o.dying) return;
+      var dx = c.x - o.x, dy = c.y - o.y;
+      var d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+      var want = (c.r + o.r) * 0.96;
+      if (d < want) {
+        var push = (want - d) / want;
+        mx += dx / d * push; my += dy / d * push; cnt++;
+        return cnt < 7;
+      }
+    });
+    cbSkip = null;
+    if (cnt) {
+      var nx = c.x + mx * f * 2.2, ny = c.y + my * f * 2.2;
+      if (inDish(nx, ny, 6)) { c.x = nx; c.y = ny; }
+    }
+  }
+}
+
+function freeSpotNear(c, dist) {
+  for (var t = 0; t < 10; t++) {
+    var a = rng(0, 6.283);
+    var x = c.x + Math.cos(a) * dist, y = c.y + Math.sin(a) * dist;
+    if (!inDish(x, y, 8)) continue;
+    var blocked = false;
+    cbSkip = null;
+    forEachNear(x, y, 18, function () { blocked = true; return false; });
+    if (!blocked) return { x: x, y: y };
+  }
+  return null;
+}
+
+/* 局部氧：距血管距离 + 密度消耗 */
+function localOxygen(c) {
+  var best = 1e9;
+  for (var i = 0; i < vessels.length; i++) {
+    var v = vessels[i];
+    var dx = v.x1 - v.x0, dy = v.y1 - v.y0;
+    var L2 = dx * dx + dy * dy;
+    var t = ((c.x - v.x0) * dx + (c.y - v.y0) * dy) / L2;
+    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+    var px = v.x0 + t * dx, py = v.y0 + t * dy;
+    var d = Math.sqrt((c.x - px) * (c.x - px) + (c.y - py) * (c.y - py));
+    if (d < best) best = d;
+  }
+  var o2 = (E.oxygen / 100) * Math.exp(-best / 108);
+  var dens = Math.min(1, c.nCount / 8);
+  return Math.max(0, o2 * (1 - dens * 0.30));
+}
+
+/* ============================================================
+   8. 指标 / 命运
+   ============================================================ */
+var M = { total: 0, tumorPct: 0, confluence: 0, malig: 0, mut: 0, dead: 0, immune: 0 };
+var everHadTumor = false;     // 用于"肿瘤清零"里程碑判定
+
+function updateMetrics(silent) {
+  var t = 0, tum = 0, mut = 0, imm = 0, dead = 0, hyp = 0, hn = 0, area = 0, inf = 0;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone) continue;
+    /* 已在死亡过程中的细胞立即从"存活数"里扣除。
+       这样用划痕清除/化疗下手后，数字会马上变化 —— 手感所需。
+       注意：只扣"当前这一帧确实在 dying"的细胞，
+       不能顺手把 dying 计数写进 M.dead 之外的地方，否则重置时旧细胞会污染统计。 */
+    if (c.dying) { dead++; continue; }
+    t++;
+    area += Math.PI * c.r * c.r;
+    if (c.type === 'tumor') tum++;
+    else if (c.type === 'mutant') mut++;
+    else if (c.type === 'immune') imm++;
+    if (c.infected) inf++;
+    if (c.type === 'tumor' || c.type === 'mutant') { hyp += c.hyp; hn++; }
+  }
+  var tumorPct = t ? (tum + mut) / t * 100 : 0;
+  var confluence = Math.min(100, area / DISH_AREA * 100);
+  var malig = Math.round(Math.min(100,
+    tumorPct * 0.62 + (t ? mut / t * 100 : 0) * 1.15 + (hn ? hyp / hn : 0) * 26));
+
+  M = { total: t, tumorPct: tumorPct, confluence: confluence,
+        malig: malig, mut: mut, dead: dead, immune: imm,
+        infected: inf, virions: virions.length };
+
+  /* 被动里程碑：肿瘤清零（培养皿里曾有过肿瘤，现在一个都不剩） */
+  if (t >= 3 && tum + mut === 0 && !mileGot.no_tumor) {
+    if (everHadTumor) unlockMile('no_tumor');
+  }
+  if (tum + mut > 0) everHadTumor = true;
+
+  if (!silent) {
+    elTotal.textContent = t.toLocaleString();
+    elTumor.innerHTML = tumorPct.toFixed(0) + '<small>%</small>';
+    elConf.innerHTML = confluence.toFixed(0) + '<small>%</small>';
+    elMalig.textContent = malig;
+    elHud.textContent = '第 ' + step + ' 轮';
+
+    /* 病毒相关指标：只有启用病毒时才显示，避免干扰基线玩法 */
+    var virOn = (E.virus > 0) || virions.length > 0 || M.infected > 0;
+    if (elVirCard) elVirCard.style.display = virOn ? '' : 'none';
+    if (elFreeCard) elFreeCard.style.display = virOn ? '' : 'none';
+    if (virOn) {
+      if (elVir) elVir.innerHTML = M.infected + '<small>个</small>';
+      if (elFree) elFree.textContent = M.virions;
+    }
+
+    var st = judgeStage(tumorPct, malig);
+    if (st.colorHint === 'warn') elMalig.style.color = '#e0c274';
+    else if (st.colorHint === 'bad') elMalig.style.color = '#e2726a';
+    else elMalig.style.color = '#7ddba8';
+    renderFate();
+  }
+}
+
+function MUT_stage() { return 0; }
+
+/* 命运判定 */
+function judgeStage(tp, malig) {
+  if (M.total < 3) {
+    return { name: '培养皿清空', tone: 'bad', colorHint: 'bad',
+      desc: '所有细胞已死亡。检查营养与氧气是否过低 —— 也可能是化疗剂量过高，正常细胞被一并清除。' };
+  }
+  /* 病毒疗法有独立的结果判定（溶瘤病毒生效时会显著压低肿瘤占比） */
+  if (E.virus > 0 && M.infected >= 3 && tp < 18) {
+    return { name: '病毒疗法起效', tone: 'good', colorHint: 'good',
+      desc: '溶瘤病毒正在肿瘤克隆中扩散：被感染细胞呈琥珀色描边，裂解后释放新病毒继续感染邻近肿瘤细胞。肿瘤占比已被显著压低。' };
+  }
+  if (E.virus > 0 && virions.length > 60 && tp >= 18) {
+    return { name: '病毒扩散中', tone: 'warn', colorHint: 'warn',
+      desc: '培养液里存在大量游离病毒，肿瘤仍在扩张 —— 说明病毒扩散速度还跟不上肿瘤增殖。试试提高病毒剂量，或降低免疫强度（免疫会清除病毒）。' };
+  }
+  if (tp < 4) return { name: '正常培养', tone: 'good', colorHint: 'good',
+    desc: '细胞单层稳定，接触抑制正常运作，未见克隆扩张。' };
+  if (tp < 18) return { name: '早期增生', tone: 'good', colorHint: 'good',
+    desc: '出现小克隆，但仍受接触抑制约束，尚未突破组织边界。' };
+  if (tp < 42) return { name: '原位癌', tone: 'warn', colorHint: 'warn',
+    desc: '克隆持续扩张，接触抑制失效，细胞开始挤压周围正常细胞。' };
+  if (tp < 70) return { name: '浸润性癌', tone: 'bad', colorHint: 'bad',
+    desc: '肿瘤占据优势，中心出现缺氧坏死，组织结构失去规则性。' };
+  return { name: '高度恶性', tone: 'bad', colorHint: 'bad',
+    desc: '肿瘤细胞近乎占据整个视野，正常组织几近消失。' };
+}
+
+function renderFate() {
+  var st = judgeStage(M.tumorPct, M.malig);
+  var badge = '<span class="badge b-' + (st.tone === 'good' ? 'good' : st.tone === 'warn' ? 'warn' : 'bad') +
+    '">恶性度 ' + M.malig + '</span>';
+  var extra = '';
+  if (M.total >= 3) {
+    if (E.virus > 0 && M.infected > 0) {
+      extra = ' 当前 ' + M.infected + ' 个细胞被感染、' + virions.length + ' 个游离病毒颗粒在扩散。';
+    } else if (M.malig > 58 && E.oxygen < 35) extra = ' 缺氧正在筛选更具侵袭性的亚克隆。';
+    else if (E.immune > 55 && M.tumorPct < 32) extra = ' 免疫压力已有效压制肿瘤扩张。';
+    else if (E.chemo > 45 && M.tumorPct < 42) extra = ' 化疗药物正在抑制增殖，注意其对正常细胞的毒性。';
+  }
+  elFate.innerHTML = '<span class="stage">' + st.name + badge + '</span>' + st.desc + extra;
+}
+
+/* ============================================================
+   9. 渲染
+   ============================================================ */
+/* 类型标记色：一眼区分细胞身份 */
+var MARK_COLORS = {
+  normal: { c: OUTLINE_COLORS.normal, name: '正常细胞', hex: '#6c98c4' },
+  tumor:  { c: OUTLINE_COLORS.tumor, name: '肿瘤细胞', hex: '#ce483c' },
+  mutant: { c: OUTLINE_COLORS.mutant, name: '侵袭细胞', hex: '#7e4ac4' },
+  immune: { c: OUTLINE_COLORS.immune, name: '免疫细胞', hex: '#2e965c' }
+};
+var markMode = true;      // 是否显示类型色环
+var picked = null;        // 当前选中的细胞
+var sorted = [], sortTick = 0;
+
+function drawVessels(g) {
+  g.save();
+  g.lineCap = 'round';
+  g.strokeStyle = 'rgba(184,165,138,0.78)';
+  g.lineWidth = 3.4;
+  g.shadowBlur = 0;
+  for (var i = 0; i < vessels.length; i++) {
+    var v = vessels[i];
+    g.beginPath(); g.moveTo(v.x0, v.y0); g.lineTo(v.x1, v.y1); g.stroke();
+  }
+  g.restore();
+}
+
+function render() {
+  ctx.drawImage(bgCanvas, 0, 0);
+
+  drawVessels(ctx);
+
+  if (sortTick++ % 12 === 0) {
+    sorted = cells.slice().sort(function (a, b) { return b.r - a.r; });
+  }
+
+  {
+    for (var j = 0; j < sorted.length; j++) {
+      var c = sorted[j];
+      if (c.fullyGone) continue;
+
+      /* 凋亡小体 */
+      if (c.shards && c.shards.length) {
+        for (var s4 = 0; s4 < c.shards.length; s4++) {
+          var sh = c.shards[s4];
+          if (sh.pr < 0.4 || sh.life <= 0) continue;
+          var sp4 = BODY[sh.spr];
+          var h4 = sh.pr * 1.55;
+          ctx.globalAlpha = Math.min(1, sh.life * 1.2);
+          ctx.drawImage(sp4, sh.x - h4, sh.y - h4, h4 * 2, h4 * 2);
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      if (c.pr < 0.4 && !c.dying) continue;
+
+      /* 裂解形态：胀大 → 爆裂消失（病毒释放的瞬间） */
+      if (c.deathKind === 'lysis') {
+        var lsz = c.pr / BLOB_R * SPR;
+        if (lsz > 1) {
+          var lrow = spriteRowOf(c.type, c.spr);
+          if (lrow) ctx.drawImage(lrow[BUCKETS_MID], c.px - lsz / 2, c.py - lsz / 2, lsz, lsz);
+          /* 包涵体在高载量时更明显 */
+          var lio = INFECT_OVER[c.virusSpr % INFECT_OVER.length];
+          if (lio) {
+            ctx.globalAlpha = 0.55 + (c.dMorph || 0) * 0.45;
+            ctx.drawImage(lio, c.px - lsz / 2, c.py - lsz / 2, lsz, lsz);
+            ctx.globalAlpha = 1;
+          }
+          /* 膜紧绷的亮边：视觉提示"马上就要炸开" */
+          ctx.save();
+          ctx.globalAlpha = 0.30 + (c.dMorph || 0) * 0.55;
+          ctx.strokeStyle = 'rgba(190,244,252,0.95)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.arc(c.px, c.py, c.pr * 1.02, 0, 6.283); ctx.stroke();
+          ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      /* 死亡形态 */
+      if (c.dying) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, c.sc));
+        if (c.deathKind === 'apoptosis') {
+          var ai = Math.max(0, Math.min(4, Math.round((c.dMorph || 0) / 2 * 4)));
+          var szA = c.pr / BLOB_R * SPR;
+          ctx.drawImage(APOP[ai], c.px - szA / 2, c.py - szA / 2, szA, szA);
+        } else {
+          /* dMorph 现在覆盖 0~3（0-1 肿胀 / 1-2 破裂 / 2-3 降解） */
+          var ni = Math.max(0, Math.min(3, Math.round((c.dMorph || 0) / 3 * 3)));
+          var szN = c.pr / BLOB_R * SPR;
+          ctx.drawImage(NECRO[ni], c.px - szN / 2, c.py - szN / 2, szN, szN);
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      /* 活细胞：按类型取精灵，保证不同细胞形态真正不同 */
+      if (c.pr < 0.4) continue;
+      var row = spriteRowOf(c.type, c.spr);
+      if (!row) continue;
+
+      if (c.sc > 0.985 && c.neo >= 1) {
+        var bk = row[bucketFor(c.pr / BLOB_R)];
+        var half = bk.width / 2;
+        ctx.drawImage(bk, c.px - half, c.py - half);
+        /* 感染覆盖层：胞内病毒颗粒与包涵体（随载量增强） */
+        if (c.infected && c.virusLoad > 0.02 && INFECT_OVER.length) {
+          var io = INFECT_OVER[c.virusSpr % INFECT_OVER.length];
+          ctx.globalAlpha = Math.min(1, 0.30 + c.virusLoad * 0.75);
+          ctx.drawImage(io, c.px - half, c.py - half);
+          ctx.globalAlpha = 1;
+        }
+        /* 轮廓：与细胞体同形态，只描一圈类型色（不遮挡内部） */
+        if (markMode) {
+          /* 被感染的细胞轮廓改为琥珀色，一眼看出感染状态 */
+          var okType = (c.infected ? 'infected' : c.type);
+          var orow = outlineRowOf(okType, c.spr);
+          if (!orow) orow = outlineRowOf(c.type, c.spr);
+          if (orow) {
+            var ok2 = orow[bucketFor(c.pr / BLOB_R)];
+            ctx.drawImage(ok2, c.px - ok2.width / 2, c.py - ok2.height / 2);
+          }
+        }
+      } else {
+        ctx.globalAlpha = Math.max(0, Math.min(1, c.sc));
+        var dsz = c.pr / BLOB_R * SPR;
+        ctx.drawImage(row[BUCKETS_MID], c.px - dsz / 2, c.py - dsz / 2, dsz, dsz);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    /* ---- 选中高亮：虚线外框 ---- */
+    if (picked && !picked.fullyGone) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(picked.px, picked.py, picked.r * 1.06, 0, 6.283);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(picked.px - picked.r * 1.5, picked.py);
+      ctx.lineTo(picked.px - picked.r * 1.2, picked.py);
+      ctx.moveTo(picked.px + picked.r * 1.2, picked.py);
+      ctx.lineTo(picked.px + picked.r * 1.5, picked.py);
+      ctx.moveTo(picked.px, picked.py - picked.r * 1.5);
+      ctx.lineTo(picked.px, picked.py - picked.r * 1.2);
+      ctx.moveTo(picked.px, picked.py + picked.r * 1.2);
+      ctx.lineTo(picked.px, picked.py + picked.r * 1.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ---- 投放脉冲：新投放的细胞扩散一圈光环，明确告诉玩家"在这里" ---- */
+    for (var sp = 0; sp < sorted.length; sp++) {
+      var sc2 = sorted[sp];
+      if (!sc2.seedPulse || sc2.fullyGone) continue;
+      var sp2 = sc2.seedPulse;               // 1 → 0
+      var ringR = sc2.r * (1.05 + (1 - sp2) * 2.2);
+      ctx.save();
+      ctx.globalAlpha = sp2 * 0.85;
+      ctx.strokeStyle = 'rgba(226,96,84,0.95)';
+      ctx.lineWidth = 1.4 + sp2 * 2.2;
+      ctx.beginPath(); ctx.arc(sc2.px, sc2.py, ringR, 0, 6.283); ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ---- 裂解爆发特效：细胞爆开时扩散的病毒冲击波 ---- */
+    for (var bf = 0; bf < burstFx.length; bf++) {
+      var fx = burstFx[bf];
+      var pr2 = 1 - fx.t;                       // 0 → 1 扩散
+      var rr2 = fx.r + pr2 * 46;
+      ctx.save();
+      ctx.globalAlpha = fx.t * 0.75;
+      ctx.strokeStyle = 'rgba(150,232,246,0.95)';
+      ctx.lineWidth = 1.2 + fx.t * 2.4;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, rr2, 0, 6.283); ctx.stroke();
+      /* 内圈更亮一点，形成冲击感 */
+      ctx.globalAlpha = fx.t * 0.40;
+      ctx.strokeStyle = 'rgba(226,250,254,0.95)';
+      ctx.lineWidth = 1.0 + fx.t * 1.6;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, rr2 * 0.66, 0, 6.283); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ---- 游离病毒颗粒（画在细胞之上，方便追踪扩散路径）---- */
+  if (virions.length) {
+    ctx.save();
+    for (var vv = 0; vv < virions.length; vv++) {
+      var vr = virions[vv];
+      var spr = VIRION[vr.spr % VIRION.length];
+      if (!spr) continue;
+      var vsz = vr.r * 2.4;
+      /* 生命末期变淡，表示病毒在培养液里失活 */
+      ctx.globalAlpha = Math.min(1, 0.42 + vr.life * 0.58);
+      ctx.drawImage(spr, vr.px - vsz / 2, vr.py - vsz / 2, vsz, vsz);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  ctx.strokeStyle = 'rgba(210,212,220,0.16)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(CX, CY, RAD, 0, 6.283); ctx.stroke();
+}
+
+/* ============================================================
+   9.5 放大观察：实时绘制选中细胞的内部结构
+   ============================================================ */
+var inspCv = $('insp');
+var ictx = inspCv.getContext('2d');
+var IW = inspCv.width, IH = inspCv.height;
+var ICX = IW / 2, ICY = IH / 2;
+var inspSeed = 1;
+var inspPhase = 0;          /* 放大视图动画相位（秒） */
+
+function makeInspRng() {
+  inspSeed = (inspSeed * 1664525 + 1013904223) & 0x7fffffff;
+  return inspSeed / 0x7fffffff;
+}
+function ir(a, b) { return a + (b - a) * makeInspRng(); }
+
+/* 从池中挑一个细胞（优先视野中央附近的活细胞） */
+function pickCellAt(mx, my, tol) {
+  var best = null, bd = (tol || 16) * (tol || 16);
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone) continue;
+    var dx = c.px - mx, dy = c.py - my;
+    var d2 = dx * dx + dy * dy;
+    var hitR = Math.max(c.r * 1.14, 12);
+    if (d2 < hitR * hitR && d2 < bd) { bd = d2; best = c; }
+  }
+  return best;
+}
+
+/* 绘制放大视图 */
+function drawInspector() {
+  var c = picked;
+  ictx.clearRect(0, 0, IW, IH);
+
+  /* 背景：明亮培养液视野（与主培养皿一致的暖灰基调） */
+  var bg = ictx.createRadialGradient(ICX, ICY, 8, ICX, ICY, IW * 0.76);
+  bg.addColorStop(0, '#d6d2ce');
+  bg.addColorStop(1, '#c4c0bb');
+  ictx.fillStyle = bg;
+  ictx.fillRect(0, 0, IW, IH);
+
+  if (!c) {
+    ictx.fillStyle = 'rgba(110,106,102,0.85)';
+    ictx.font = '12.5px sans-serif';
+    ictx.textAlign = 'center';
+    ictx.fillText('点击培养皿里的细胞', ICX, ICY - 6);
+    ictx.fillStyle = 'rgba(140,136,132,0.75)';
+    ictx.fillText('这里会放大显示内部结构', ICX, ICY + 14);
+    ictx.textAlign = 'start';
+    return;
+  }
+
+  var look = CELL_LOOK[c.type] || CELL_LOOK.normal;
+  var isDead = c.dying;
+  var deadKind = c.deathKind;
+
+  /* 种子与培养皿中的该细胞一致，保证形态对应 */
+  inspSeed = 1000 + c.spr * 977 +
+    (c.type === 'tumor' ? 31 : c.type === 'mutant' ? 67 : c.type === 'immune' ? 131 : 13);
+
+  var stretch = ir(look.stretch[0], look.stretch[1]);
+  var rot = ir(0, Math.PI * 0.5);
+  /* 放大后：主轴长半径 */
+  var halfLen = IW * 0.44;
+  var halfWid = halfLen / stretch;
+  var jitPh = stretch * 2.3 + rot * 1.7;
+
+  if (isDead) {
+    if (deadKind === 'apoptosis') {
+      var k1 = Math.min(1, (c.dMorph || 0) / 2);
+      halfLen *= (1 - 0.40 * k1);
+      halfWid *= (1 - 0.22 * k1);      /* 凋亡：收缩并变圆 */
+    } else {
+      /* 坏死：轻微肿胀（上限 10%），破裂后转为收缩，不再无限撑大 */
+      var nk = Math.min(1, Math.max(0, (c.dMorph || 0)));
+      halfLen *= (1 + 0.10 * nk);
+      halfWid *= (1 + 0.18 * nk);
+    }
+  }
+
+  /* 动画相位：让细胞内部"活"起来（细胞质流动、细胞器布朗运动、膜波动） */
+  var tp = inspPhase;
+  var wob = Math.sin(tp * 1.1) * 0.35 + Math.sin(tp * 2.7 + 1.3) * 0.20;   // 整体轻微起伏
+  halfLen *= (1 + wob * 0.012);
+  halfWid *= (1 - wob * 0.010);
+  /* 膜波动：边缘像活细胞一样轻微起伏 */
+  var memA = isDead ? 0 : (1 - Math.min(1, (c.age || 0) / 120)) * 0.0 + 0.030;
+  var memF = 1.9;
+
+  ictx.save();
+  ictx.translate(ICX, ICY);
+  ictx.rotate(rot + Math.sin(tp * 0.55) * 0.018);
+
+  /* 纺锤形路径：与精灵同一算法（参数方程，两端渐尖） */
+  function spindle(scale, extraWob) {
+    var N = 150;
+    var e0 = 1 + look.tip * 0.55;
+    var e1 = e0 + 0.26;
+    ictx.beginPath();
+    for (var i = 0; i <= N; i++) {
+      var a = i / N * Math.PI * 2;
+      var ca = Math.cos(a), sa = Math.sin(a);
+      var j = 1;
+      for (var k = 0; k < 3; k++) {
+        /* 放大图里把不规则度压低，避免出现折线状多边形轮廓 */
+        j *= 1 + (0.014 * look.jitAmp) * Math.sin((k + 2) * a + (k * 1.7 + jitPh));
+      }
+      if (extraWob) {
+        j *= 1 + memA * Math.sin(memF * a + tp * 1.7) * 0.5
+               + memA * Math.sin(3.1 * a - tp * 1.15);
+      }
+      var ex = ca < 0 ? e1 : e0;
+      var wy = Math.pow(Math.abs(sa), ex) * (sa < 0 ? -1 : 1);
+      var x = halfLen * ca * j * scale;
+      var y = halfWid * wy * j * scale;
+      if (i === 0) ictx.moveTo(x, y); else ictx.lineTo(x, y);
+    }
+    ictx.closePath();
+  }
+  /* 细胞核 / 细胞器用同一份抖动，保证每帧位置连续 */
+  function drift(seedI, amp) {
+    return Math.sin(tp * 0.9 + seedI * 1.7) * amp + Math.sin(tp * 2.3 + seedI * 3.1) * amp * 0.4;
+  }
+
+  /* 胞质配色：死亡态也用暖灰族，只比活细胞略亮/略灰，不再出现刺白 */
+  var bod = isDead
+    ? (deadKind === 'necrosis'
+        ? ['rgb(186,181,177)', 'rgb(172,167,163)', 'rgb(154,149,146)', 'rgb(138,133,131)']
+        : ['rgb(212,208,204)', 'rgb(200,196,192)', 'rgb(184,180,176)', 'rgb(166,162,159)'])
+    : look.body;
+
+  /* 胞质主体：贴壁细胞是"扁"的，用沿短轴的线性渐变，避免球状感 */
+  var cg2 = ictx.createLinearGradient(0, -halfWid * 1.05, 0, halfWid * 1.05);
+  cg2.addColorStop(0.00, bod[3]);
+  cg2.addColorStop(0.30, bod[1]);
+  cg2.addColorStop(0.50, bod[0]);
+  cg2.addColorStop(0.72, bod[1]);
+  cg2.addColorStop(1.00, bod[3]);
+  spindle(1.0, true);
+  ictx.fillStyle = cg2; ictx.fill();
+
+  /* 沿主轴头尾压暗 */
+  var ag2 = ictx.createLinearGradient(-halfLen, 0, halfLen, 0);
+  ag2.addColorStop(0.00, 'rgba(150,145,141,0.18)');
+  ag2.addColorStop(0.26, 'rgba(150,145,141,0.00)');
+  ag2.addColorStop(0.74, 'rgba(150,145,141,0.00)');
+  ag2.addColorStop(1.00, 'rgba(150,145,141,0.20)');
+  spindle(0.99, true);
+  ictx.fillStyle = ag2; ictx.fill();
+
+  /* ---- 内部结构 ---- */
+  ictx.save();
+  spindle(0.982);
+  ictx.clip();
+
+  if (isDead && deadKind === 'necrosis') {
+    /* 坏死：结构溶解 */
+    for (var dz = 0; dz < 60; dz++) {
+      var dzx = ir(-0.9, 0.9) * halfLen, dzy = ir(-0.85, 0.85) * halfWid;
+      ictx.fillStyle = 'rgba(168,163,158,' + ir(0.08, 0.20).toFixed(3) + ')';
+      ictx.beginPath();
+      ictx.arc(dzx, dzy, halfWid * ir(0.05, 0.22), 0, 6.283);
+      ictx.fill();
+    }
+    for (var bl = 0; bl < 7; bl++) {
+      var bx3 = ir(-0.75, 0.75) * halfLen, by3 = ir(-0.6, 0.6) * halfWid;
+      ictx.fillStyle = 'rgba(150,146,142,' + ir(0.12, 0.26).toFixed(3) + ')';
+      ictx.beginPath();
+      ictx.arc(bx3, by3, halfWid * ir(0.18, 0.48), 0, 6.283);
+      ictx.fill();
+    }
+  } else {
+    /* 细胞骨架 / 微管：沿主轴的长丝，随时间轻微摆动 */
+    for (var cb2 = 0; cb2 < 7; cb2++) {
+      var cby = ir(-0.80, 0.80) * halfWid;
+      var cbx0 = ir(-0.9, -0.3) * halfLen, cbx1 = ir(0.3, 0.9) * halfLen;
+      ictx.beginPath();
+      ictx.moveTo(cbx0, cby);
+      ictx.bezierCurveTo(cbx0 + (cbx1 - cbx0) * 0.33, cby + drift(cb2, 7),
+                         cbx0 + (cbx1 - cbx0) * 0.66, cby + drift(cb2 + 5, 7),
+                         cbx1, cby + drift(cb2 + 9, 5));
+      ictx.strokeStyle = 'rgba(166,161,157,' + ir(0.10, 0.20).toFixed(3) + ')';
+      ictx.lineWidth = ir(1.8, 3.6);
+      ictx.lineCap = 'round';
+      ictx.stroke();
+    }
+
+    /* 内质网：沿主轴方向的细丝（缓慢流动） */
+    for (var eI = 0; eI < look.er * 11; eI++) {
+      var ey0 = ir(-0.78, 0.78) * halfWid;
+      var ex0 = ir(-0.86, 0.86) * halfLen;
+      var eL = halfLen * ir(0.09, 0.28);
+      var edx = drift(eI, 3.5), edy = drift(eI + 31, 5);
+      ictx.beginPath();
+      ictx.moveTo(ex0 + edx, ey0 + edy);
+      ictx.quadraticCurveTo(ex0 + eL * 0.5, ey0 + ir(-10, 10) + edy,
+                            ex0 + eL + edx, ey0 + ir(-13, 13) + edy);
+      ictx.strokeStyle = 'rgba(158,152,148,' + ir(0.16, 0.32).toFixed(3) + ')';
+      ictx.lineWidth = ir(1.3, 3.2);
+      ictx.lineCap = 'round';
+      ictx.stroke();
+    }
+
+    /* 内质网上的核糖体颗粒 */
+    for (var rb = 0; rb < 90; rb++) {
+      var rbx = ir(-0.86, 0.86) * halfLen, rby = ir(-0.72, 0.72) * halfWid;
+      ictx.fillStyle = 'rgba(122,116,112,' + ir(0.18, 0.36).toFixed(3) + ')';
+      ictx.beginPath(); ictx.arc(rbx, rby, ir(1.0, 2.2), 0, 6.283); ictx.fill();
+    }
+
+    /* 线粒体：细长椭圆 + 内部嵴（布朗漂移） */
+    for (var mI = 0; mI < look.mito * 2; mI++) {
+      var mmx = ir(-0.82, 0.82) * halfLen, mmy = ir(-0.72, 0.72) * halfWid;
+      var mxA = mmx + drift(mI, 4.0), myA = mmy + drift(mI + 61, 3.5);
+      var mL = halfLen * ir(0.055, 0.105), mW = mL * ir(0.38, 0.54);
+      var mR = ir(0, 6.283);
+      ictx.save();
+      ictx.translate(mxA, myA); ictx.rotate(mR);
+      var mg = ictx.createLinearGradient(-mL, 0, mL, 0);
+      mg.addColorStop(0, 'rgba(158,152,149,0.42)');
+      mg.addColorStop(0.5, 'rgba(128,121,119,0.56)');
+      mg.addColorStop(1, 'rgba(158,152,149,0.42)');
+      ictx.beginPath(); ictx.ellipse(0, 0, mL, mW, 0, 0, 6.283);
+      ictx.fillStyle = mg; ictx.fill();
+      ictx.strokeStyle = 'rgba(112,106,104,' + ir(0.34, 0.52).toFixed(3) + ')';
+      ictx.lineWidth = 1.4; ictx.stroke();
+      /* 嵴：内部折线 */
+      for (var cr = 0; cr < 4; cr++) {
+        var cx0 = -mL + (cr + 0.5) / 4 * mL * 2;
+        ictx.beginPath();
+        ictx.moveTo(cx0, -mW * 0.78); ictx.lineTo(cx0 + mW * 0.32, 0);
+        ictx.lineTo(cx0, mW * 0.78);
+        ictx.strokeStyle = 'rgba(120,114,112,0.42)';
+        ictx.lineWidth = 1.1; ictx.stroke();
+      }
+      ictx.restore();
+    }
+
+    /* 溶酶体：较深的小圆（带亮边） */
+    var nLys = look.abnormal ? 6 : 4;
+    for (var lyI = 0; lyI < nLys; lyI++) {
+      var lyx = ir(-0.78, 0.78) * halfLen + drift(lyI + 101, 3.2);
+      var lyy = ir(-0.62, 0.62) * halfWid + drift(lyI + 121, 2.8);
+      var lyR = halfWid * ir(0.11, 0.21);
+      var lyg = ictx.createRadialGradient(lyx - lyR * 0.3, lyy - lyR * 0.3, 0, lyx, lyy, lyR);
+      lyg.addColorStop(0, 'rgba(118,110,107,0.56)');
+      lyg.addColorStop(1, 'rgba(96,89,87,0.42)');
+      ictx.fillStyle = lyg;
+      ictx.beginPath(); ictx.arc(lyx, lyy, lyR, 0, 6.283); ictx.fill();
+      ictx.strokeStyle = 'rgba(206,201,197,0.48)';
+      ictx.lineWidth = 1.2; ictx.stroke();
+    }
+
+    /* 高尔基体：多层弧形（缓慢摆动） */
+    for (var gI = 0; gI < look.golgi; gI++) {
+      var gx = ir(-0.34, 0.34) * halfLen, gy = ir(-0.42, 0.42) * halfWid;
+      var gR = halfWid * ir(0.45, 0.70);
+      ictx.save();
+      ictx.translate(gx + drift(gI, 3.0), gy + drift(gI + 71, 2.6));
+      ictx.rotate(ir(-0.5, 0.5) + Math.sin(tp * 0.7 + gI) * 0.05);
+      for (var sI = 0; sI < 6; sI++) {
+        ictx.beginPath();
+        ictx.arc(0, sI * gR * 0.15, gR - sI * gR * 0.11, Math.PI * 1.08, Math.PI * 1.92);
+        ictx.strokeStyle = 'rgba(178,173,170,' + (0.36 - sI * 0.045).toFixed(3) + ')';
+        ictx.lineWidth = 1.8;
+        ictx.stroke();
+      }
+      /* 高尔基小泡 */
+      for (var gv = 0; gv < 5; gv++) {
+        ictx.beginPath();
+        ictx.arc(ir(-gR * 0.9, gR * 0.9), gR * ir(0.5, 1.1), ir(1.6, 3.2), 0, 6.283);
+        ictx.fillStyle = 'rgba(190,185,182,0.34)'; ictx.fill();
+      }
+      ictx.restore();
+    }
+
+    /* 空泡：比胞质略透亮（不要过曝成白球）+ 折光内缘 */
+    for (var vI = 0; vI < look.vacuoles * 2; vI++) {
+      var vx = ir(-0.80, 0.80) * halfLen + drift(vI + 201, 3.4);
+      var vy = ir(-0.62, 0.62) * halfWid + drift(vI + 221, 2.9);
+      var vR = halfWid * ir(0.22, 0.42);
+      var vg = ictx.createRadialGradient(vx - vR * 0.3, vy - vR * 0.3, 0, vx, vy, vR);
+      vg.addColorStop(0, 'rgba(216,212,208,0.34)');
+      vg.addColorStop(0.72, 'rgba(204,200,196,0.16)');
+      vg.addColorStop(1, 'rgba(198,194,190,0.05)');
+      ictx.fillStyle = vg;
+      ictx.beginPath(); ictx.arc(vx, vy, vR, 0, 6.283); ictx.fill();
+      ictx.strokeStyle = 'rgba(184,179,175,0.26)';
+      ictx.lineWidth = 1.1; ictx.stroke();
+      /* 内缘细亮弧（折光） */
+      ictx.beginPath();
+      ictx.arc(vx, vy, vR * 0.74, Math.PI * 1.15, Math.PI * 1.75);
+      ictx.strokeStyle = 'rgba(232,229,226,0.24)';
+      ictx.lineWidth = 1.1; ictx.stroke();
+    }
+
+    /* 脂滴 */
+    for (var lI = 0; lI < look.lipid * 2; lI++) {
+      var lx = ir(-0.82, 0.82) * halfLen + drift(lI + 301, 3.0);
+      var ly = ir(-0.6, 0.6) * halfWid + drift(lI + 321, 2.7);
+      var lR = halfWid * ir(0.08, 0.20);
+      var lg = ictx.createRadialGradient(lx - lR * 0.35, ly - lR * 0.35, 0, lx, ly, lR);
+      lg.addColorStop(0, 'rgba(246,244,241,0.78)');
+      lg.addColorStop(1, 'rgba(222,218,214,0.20)');
+      ictx.fillStyle = lg;
+      ictx.beginPath(); ictx.arc(lx, ly, lR, 0, 6.283); ictx.fill();
+    }
+
+    /* ---- 细胞核：中央椭圆 + 深色核仁（参考图最显著结构）---- */
+    for (var nI = 0; nI < look.nucleus; nI++) {
+      /* 多核时按圆周均分方位，避免核全部堆在中心叠成一坨 */
+      var nOx, nOy;
+      if (look.nucleus === 1) {
+        nOx = ir(-0.12, 0.12); nOy = ir(-0.12, 0.12);
+      } else {
+        var spreadA = nI / look.nucleus * Math.PI * 2 + ir(-0.28, 0.28);
+        var spreadR = ir(0.80, 1.05);
+        nOx = Math.cos(spreadA) * 0.46 * spreadR;
+        nOy = Math.sin(spreadA) * 0.46 * spreadR;
+      }
+      var nRx = halfLen * ir(look.nucR[0], look.nucR[1]);
+      /* 多核时核本身要变小，否则会撑满整个细胞 */
+      if (look.nucleus > 1) nRx *= 0.82 / Math.sqrt(look.nucleus * 0.55);
+      var nRy = nRx * ir(0.56, 0.74);
+      var nRot = ir(-0.5, 0.5);
+      var nIrr = look.abnormal ? ir(1.10, 1.26) : ir(1.0, 1.05);
+
+      ictx.save();
+      ictx.translate(nOx * halfLen + drift(nI + 401, 2.6),
+                     nOy * halfWid + drift(nI + 421, 2.2));
+      ictx.rotate(nRot + Math.sin(tp * 0.6 + nI * 2.1) * 0.03);
+      ictx.beginPath();
+      for (var na = 0; na <= 72; na++) {
+        var th = na / 72 * Math.PI * 2;
+        var kx = 1 + (nIrr - 1) * 0.35 * Math.sin(th * 3);
+        /* 核膜也轻微起伏（比细胞膜更弱） */
+        kx *= 1 + 0.014 * Math.sin(2.0 * th + tp * 1.3 + nI);
+        var nx2 = Math.cos(th) * nRx * kx;
+        var ny2 = Math.sin(th) * nRy * kx;
+        if (na === 0) ictx.moveTo(nx2, ny2); else ictx.lineTo(nx2, ny2);
+      }
+      ictx.closePath();
+      var ng = ictx.createRadialGradient(-nRx * 0.22, -nRy * 0.22, 0, 0, 0, nRx * 1.06);
+      if (look.abnormal) {
+        ng.addColorStop(0, 'rgba(152,141,136,0.90)');
+        ng.addColorStop(0.60, 'rgba(128,117,113,0.90)');
+        ng.addColorStop(1, 'rgba(106,97,95,0.74)');
+      } else {
+        ng.addColorStop(0, 'rgba(170,160,153,0.88)');
+        ng.addColorStop(0.60, 'rgba(146,137,131,0.88)');
+        ng.addColorStop(1, 'rgba(122,114,110,0.70)');
+      }
+      ictx.fillStyle = ng; ictx.fill();
+      /* 核膜：外侧一圈亮边（相差显微镜里核轮廓很清晰） */
+      ictx.strokeStyle = 'rgba(212,206,201,0.72)';
+      ictx.lineWidth = 2.2; ictx.stroke();
+      ictx.strokeStyle = 'rgba(148,138,132,0.50)';
+      ictx.lineWidth = 1.1; ictx.stroke();
+
+      /* 染色质颗粒 */
+      for (var chI = 0; chI < 26; chI++) {
+        var chA = ir(0, 6.283), chD = Math.sqrt(makeInspRng());
+        ictx.fillStyle = 'rgba(142,132,127,' + ir(0.10, 0.24).toFixed(3) + ')';
+        ictx.beginPath();
+        ictx.arc(Math.cos(chA) * chD * nRx * 0.72,
+                 Math.sin(chA) * chD * nRy * 0.72,
+                 nRx * ir(0.035, 0.085), 0, 6.283);
+        ictx.fill();
+      }
+
+      /* 核仁：深色致密（参考图中非常醒目） */
+      for (var noI = 0; noI < look.nucleoli; noI++) {
+        var noR2 = nRx * ir(0.26, 0.40);
+        var nox2 = ir(-0.32, 0.32) * nRx, noy2 = ir(-0.32, 0.32) * nRy;
+        var nog = ictx.createRadialGradient(nox2 - noR2 * 0.3, noy2 - noR2 * 0.3, 0, nox2, noy2, noR2);
+        nog.addColorStop(0, 'rgba(138,126,120,0.86)');
+        nog.addColorStop(1, 'rgba(112,101,97,0.66)');
+        ictx.fillStyle = nog;
+        ictx.beginPath(); ictx.arc(nox2, noy2, noR2, 0, 6.283); ictx.fill();
+      }
+      ictx.restore();
+    }
+
+    /* 胞质细颗粒：更密、更明显的颗粒质感（真实细胞质不是均匀灰） */
+    for (var s2 = 0; s2 < 1500; s2++) {
+      var sx2 = ir(-0.96, 0.96) * halfLen, sy2 = ir(-0.94, 0.94) * halfWid;
+      var sBright = makeInspRng() > 0.5;
+      ictx.fillStyle = 'rgba(' + (sBright ? '232,229,225' : '148,142,138') + ',' +
+        ir(0.07, 0.22).toFixed(3) + ')';
+      var gsz2 = ir(0.7, 2.2);
+      ictx.fillRect(sx2, sy2, gsz2, gsz2);
+    }
+
+    /* 胞质流动纹理：极淡的云雾状明暗（模拟细胞质基质不均一） */
+    for (var cl = 0; cl < 9; cl++) {
+      var clx = ir(-0.8, 0.8) * halfLen + drift(cl + 501, 4.5);
+      var cly = ir(-0.7, 0.7) * halfWid + drift(cl + 521, 3.8);
+      var clR = halfWid * ir(0.5, 1.3);
+      var clg = ictx.createRadialGradient(clx, cly, 0, clx, cly, clR);
+      var dark = makeInspRng() > 0.45;
+      clg.addColorStop(0, dark ? 'rgba(148,143,139,0.10)' : 'rgba(226,222,218,0.10)');
+      clg.addColorStop(1, 'rgba(160,155,151,0)');
+      ictx.fillStyle = clg;
+      ictx.beginPath(); ictx.arc(clx, cly, clR, 0, 6.283); ictx.fill();
+    }
+
+    /* ---- 病毒复制工厂（仅被感染的细胞）----
+       大量病毒颗粒在胞质中装配、聚集，形成明亮的包涵体 */
+    if (c.infected) {
+      var vN = Math.round(14 + c.virusLoad * 26);
+      for (var vi2 = 0; vi2 < vN; vi2++) {
+        var vpx = ir(-0.82, 0.82) * halfLen + drift(vi2 + 1301, 3.6);
+        var vpy = ir(-0.74, 0.74) * halfWid + drift(vi2 + 1321, 3.1);
+        var vpr = halfWid * ir(0.035, 0.075);
+        var vpg = ictx.createRadialGradient(vpx - vpr * 0.3, vpy - vpr * 0.3, 0, vpx, vpy, vpr);
+        vpg.addColorStop(0, 'rgba(224,250,255,0.96)');
+        vpg.addColorStop(0.55, 'rgba(116,206,226,0.90)');
+        vpg.addColorStop(1, 'rgba(58,150,176,0.72)');
+        ictx.fillStyle = vpg;
+        ictx.beginPath(); ictx.arc(vpx, vpy, vpr, 0, 6.283); ictx.fill();
+        /* 衣壳棱：一点点几何感，区别于普通囊泡 */
+        ictx.strokeStyle = 'rgba(232,252,255,0.55)';
+        ictx.lineWidth = 0.7;
+        ictx.beginPath();
+        ictx.moveTo(vpx - vpr * 0.6, vpy - vpr * 0.6);
+        ictx.lineTo(vpx + vpr * 0.6, vpy + vpr * 0.6);
+        ictx.stroke();
+      }
+      /* 包涵体：病毒装配厂，明亮的团块 */
+      for (var ib = 0; ib < 3; ib++) {
+        var ibx = ir(-0.44, 0.44) * halfLen + drift(ib + 1501, 3.0);
+        var iby = ir(-0.40, 0.40) * halfWid + drift(ib + 1521, 2.6);
+        var ibR = halfWid * ir(0.26, 0.46);
+        var ibg = ictx.createRadialGradient(ibx, iby, 0, ibx, iby, ibR);
+        ibg.addColorStop(0, 'rgba(210,246,254,0.62)');
+        ibg.addColorStop(0.6, 'rgba(140,216,234,0.30)');
+        ibg.addColorStop(1, 'rgba(140,216,234,0)');
+        ictx.fillStyle = ibg;
+        ictx.beginPath(); ictx.arc(ibx, iby, ibR, 0, 6.283); ictx.fill();
+      }
+    }
+  }
+  ictx.restore();  /* 取消裁剪 */
+
+  /* 膜边缘：细而清晰的折光边（不再是大白圈） */
+  ictx.save();
+  ictx.globalAlpha = isDead ? (deadKind === 'necrosis' ? 0.24 : 0.58) : 0.60;
+  ictx.shadowColor = isDead && deadKind === 'apoptosis'
+    ? 'rgba(248,246,244,0.85)' : 'rgba(240,238,236,0.78)';
+  ictx.shadowBlur = isDead && deadKind === 'apoptosis' ? 5 : 2.6;
+  ictx.strokeStyle = isDead && deadKind === 'apoptosis'
+    ? 'rgba(238,235,232,0.98)' : look.rim;
+  ictx.lineWidth = isDead && deadKind === 'apoptosis' ? 2.6 : 1.8;
+  spindle(1.0, true);
+  ictx.stroke();
+  ictx.restore();
+
+  /* 外侧暗描边：勾出细胞轮廓 */
+  ictx.save();
+  ictx.globalAlpha = 0.30;
+  ictx.strokeStyle = 'rgba(146,138,134,0.9)';
+  ictx.lineWidth = 1.2;
+  spindle(1.020);
+  ictx.stroke();
+  ictx.restore();
+
+  /* 类型色轮廓（选中细胞在放大图里也标出身份） */
+  if (markMode && !isDead && OUTLINE_COLORS[c.type]) {
+    ictx.save();
+    ictx.globalAlpha = 0.55;
+    ictx.strokeStyle = OUTLINE_COLORS[c.type];
+    ictx.lineWidth = 2.0;
+    ictx.stroke();
+    ictx.restore();
+  }
+
+  ictx.restore();   /* 取消旋转 */
+
+  /* 标尺 */
+  ictx.save();
+  ictx.strokeStyle = 'rgba(110,106,102,0.50)';
+  ictx.lineWidth = 1;
+  ictx.beginPath();
+  ictx.moveTo(16, IH - 18); ictx.lineTo(16 + 46, IH - 18);
+  ictx.moveTo(16, IH - 22);  ictx.lineTo(16, IH - 14);
+  ictx.moveTo(62, IH - 22);  ictx.lineTo(62, IH - 14);
+  ictx.stroke();
+  ictx.fillStyle = 'rgba(96,92,88,0.80)';
+  ictx.font = '10.5px sans-serif';
+  ictx.fillText('20 μm', 18, IH - 26);
+  ictx.restore();
+}
+/* 更新侧栏文字说明 */
+function updateInspMeta() {
+  var el = $('inspMeta');
+  var c = picked;
+  if (!c) {
+    el.innerHTML = '点击培养皿里任意一个细胞，这里会放大显示它的内部结构。';
+    return;
+  }
+  var mk = MARK_COLORS[c.type] || MARK_COLORS.normal;
+  var hex = mk.hex;
+  var stText, stDesc;
+  if (c.dying) {
+    if (c.deathKind === 'apoptosis') {
+      stText = '凋亡中'; stDesc = '细胞收缩变圆、折光增强，即将碎裂为凋亡小体。';
+    } else if (c.deathKind === 'lysis') {
+      stText = '裂解中';
+      stDesc = '溶瘤病毒在胞内大量复制，细胞被撑胀后整体爆裂 —— 破裂瞬间会释放出数百个新病毒颗粒，继续感染周围的肿瘤细胞。';
+      hex = '#5cc4d6';
+    } else {
+      stText = '坏死中'; stDesc = '细胞肿胀、膜破裂，内部结构正在溶解。';
+    }
+  } else if (c.infected) {
+    stText = '病毒感染中';
+    stDesc = '胞质里可见大量新装配的病毒颗粒与包涵体（病毒复制工厂）。病毒正在劫持这台细胞机器复制自身，细胞已停止分裂，即将裂解。';
+    hex = '#d4962c';
+  } else if (c.type === 'normal') {
+    stText = '正常细胞'; stDesc = '单个细胞核，形态规整，接触抑制正常。对溶瘤病毒不敏感（干扰素通路完整）。';
+  } else if (c.type === 'tumor') {
+    stText = '肿瘤细胞'; stDesc = '核增大且不规则，染色质浓集，已失去接触抑制。抗病毒干扰素通路常有缺陷，因此对溶瘤病毒高度易感。';
+  } else if (c.type === 'mutant') {
+    stText = '高侵袭细胞'; stDesc = '多核、核异型显著，伸出伪足，具备迁移能力。同样易被溶瘤病毒感染。';
+  } else {
+    stText = '免疫细胞'; stDesc = '核质比高，正在搜寻并清除肿瘤细胞，同时也会清除游离病毒与已感染细胞。';
+  }
+  var hyp = Math.round((c.hyp || 0) * 100);
+  var age = c.age || 0;
+
+  var html = '<span class="nm"><i style="background:' + hex + '"></i>' + stText + '</span>';
+  html += stDesc + '<div style="margin-top:9px">';
+  html += '<div class="kv"><span>细胞类型</span><span>' + mk.name + '</span></div>';
+  html += '<div class="kv"><span>直径</span><span>' + (c.r * 2).toFixed(1) + ' 单位</span></div>';
+  html += '<div class="kv"><span>存活轮次</span><span>' + age + '</span></div>';
+  html += '<div class="kv"><span>缺氧累积</span><span>' + hyp + '%</span></div>';
+  if (c.infected && !c.dying) {
+    html += '<div class="kv"><span>病毒载量</span><span>' +
+      Math.round(Math.min(1, c.virusLoad) * 100) + '%</span></div>';
+  }
+  html += '<div class="kv"><span>病毒易感性</span><span>' +
+    (c.type === 'tumor' || c.type === 'mutant' ? '高' :
+     c.type === 'immune' ? '不感染' : '低') + '</span></div>';
+  if (c.type === 'tumor' || c.type === 'mutant') {
+    html += '<div class="kv"><span>邻近细胞</span><span>' + (c.nCount || 0) + ' 个</span></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+/* ============================================================
+   9.5 操作工具：从"看"到"下手"
+   ------------------------------------------------------------
+   划痕清除：模拟实验里的"刮除"操作，精细地定点清除细胞。
+   接种病毒：在指定位置投放病毒，观察它如何向肿瘤扩散。
+   ============================================================ */
+var curTool = 'inspect';
+var TOOL_TIPS = {
+  inspect: '点击细胞查看内部结构',
+  kill:    '在培养皿上拖动 → 划除该区域的细胞',
+  infect:  '在培养皿上点击 → 在该处投放病毒'
+};
+
+Array.prototype.forEach.call(document.querySelectorAll('.tool'), function (b) {
+  b.addEventListener('click', function () {
+    curTool = b.getAttribute('data-tool');
+    Array.prototype.forEach.call(document.querySelectorAll('.tool'), function (o) {
+      o.classList.toggle('on', o === b);
+    });
+    $('toolTip').textContent = TOOL_TIPS[curTool] || '';
+    cv.style.cursor = curTool === 'inspect' ? 'default' : 'crosshair';
+  });
+});
+
+/* 把画布坐标换算成世界坐标 */
+function evToWorld(ev) {
+  var rect = cv.getBoundingClientRect();
+  return {
+    x: (ev.clientX - rect.left) / rect.width * W,
+    y: (ev.clientY - rect.top) / rect.height * H
+  };
+}
+
+/* 划痕清除：范围内细胞走凋亡（模拟机械刮除造成的损伤）
+   半径给得比细胞略大，手感才"跟手"；太细会让人觉得划不动。 */
+var scraping = false;
+function scrapeAt(mx, my) {
+  var killed = 0;
+  forEachNear(mx, my, 34, function (o) {
+    if (o.fullyGone || o.dying) return;
+    o.dying = true;
+    o.deathKind = 'apoptosis';
+    killed++;
+  });
+  if (killed) {
+    /* 刮除会带起一小圈碎屑 */
+    burstFx.push({ x: mx, y: my, r: 10, t: 0.5 });
+    updateMetrics();     // 立即刷新数字，让玩家"一划就有反馈"
+  }
+  return killed;
+}
+
+/* 接种病毒：指定位置投放（给免疫期，确保看得见扩散） */
+function infectAt(mx, my) {
+  spawnVirions(18, mx, my, 40, true);
+  burstFx.push({ x: mx, y: my, r: 18, t: 0.85 });
+  if (E.virus < 20) { E.virus = 45; syncSliders(); }
+  updateMetrics();
+}
+
+/* 画布点击 → 取材 / 下手 */
+var suppressClick = 0;      // 拖动划痕后抑制一次 click，避免误触发点选
+cv.addEventListener('click', function (ev) {
+  if (suppressClick > 0) { suppressClick--; return; }
+  var w = evToWorld(ev);
+
+  if (curTool === 'kill') {
+    var n = scrapeAt(w.x, w.y);
+    if (n) showEvent('刮除了 ' + n + ' 个细胞（机械损伤，与凋亡同一通路）。');
+    return;
+  }
+  if (curTool === 'infect') {
+    infectAt(w.x, w.y);
+    showEvent('在此处接种溶瘤病毒，观察它向周围肿瘤扩散的路径。');
+    return;
+  }
+
+  /* 点选观察 */
+  var hit = pickCellAt(w.x, w.y, 22);
+  if (hit) {
+    picked = hit;
+    drawInspector();
+    updateInspMeta();
+    $('hint2').textContent = '已选中 · 点击其他地方可换';
+  } else {
+    picked = null;
+    drawInspector();
+    updateInspMeta();
+  }
+});
+
+/* 拖动划痕：按住即可连续刮除（手感）
+   注意：setPointerCapture 在部分环境会抛 NotFoundError，
+   必须 try 包住，否则会中断后续的 scrapeAt，表现为"划不动"。 */
+cv.addEventListener('pointerdown', function (ev) {
+  if (curTool !== 'kill') return;
+  scraping = true;
+  suppressClick = 1;          // 拖动结束后的那次 click 要忽略
+  try { if (cv.setPointerCapture) cv.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+  var w = evToWorld(ev);
+  var n = scrapeAt(w.x, w.y);
+  if (n) ev.preventDefault();
+});
+cv.addEventListener('pointermove', function (ev) {
+  if (!scraping) return;
+  var w = evToWorld(ev);
+  if (!inDish(w.x, w.y, 0)) return;
+  scrapeAt(w.x, w.y);
+});
+cv.addEventListener('pointerup', function (ev) {
+  scraping = false;
+  try { if (cv.releasePointerCapture) cv.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+});
+cv.addEventListener('pointercancel', function () { scraping = false; });
+cv.addEventListener('pointerleave', function () { scraping = false; });
+
+/* 图例（与轮廓色一致） */
+(function renderLegend() {
+  var box = $('legend');
+  var items = [
+    [OUTLINE_COLORS.normal, '正常细胞'],
+    [OUTLINE_COLORS.tumor, '肿瘤细胞'],
+    [OUTLINE_COLORS.mutant, '侵袭细胞'],
+    [OUTLINE_COLORS.immune, '免疫细胞'],
+    [OUTLINE_COLORS.infected, '病毒感染'],
+    ['rgba(96,196,214,0.95)', '病毒颗粒'],
+    ['rgba(150,144,140,0.9)', '凋亡/坏死'],
+    ['rgba(184,165,138,0.9)', '血管']
+  ];
+  box.innerHTML = items.map(function (it) {
+    return '<span><i style="background:' + it[0] + '"></i>' + it[1] + '</span>';
+  }).join('');
+})();
+
+/* 类型轮廓开关 */
+var btnFluo = $('btnFluo');
+btnFluo.addEventListener('click', function () {
+  markMode = !markMode;
+  btnFluo.classList.toggle('on', markMode);
+  btnFluo.textContent = markMode ? '类型描边' : '原始画面';
+  showEvent(markMode
+    ? '已开启类型描边：沿细胞轮廓上色（正常=蓝 / 肿瘤=红 / 侵袭=紫 / 免疫=绿），不遮挡细胞内部。'
+    : '已关闭类型描边，显示相差显微镜原始画面。');
+});
+
+/* 曲线 */
+var chartTick = 0;
+function drawChart() {
+  var w = chart.width, h = chart.height;
+  cctx.fillStyle = '#16181b';
+  cctx.fillRect(0, 0, w, h);
+  if (history.length < 2) {
+    cctx.fillStyle = '#4a4d55';
+    cctx.font = '12px sans-serif';
+    cctx.fillText('等待数据…', 12, 22);
+    return;
+  }
+  var maxV = 1;
+  for (var i = 0; i < history.length; i++) {
+    if (history[i].tot > maxV) maxV = history[i].tot;
+    if (history[i].tum > maxV) maxV = history[i].tum;
+  }
+  maxV *= 1.14;
+  function line(key, color, fill) {
+    cctx.beginPath();
+    for (var i = 0; i < history.length; i++) {
+      var x = i / (history.length - 1) * (w - 10) + 5;
+      var y = h - 8 - history[i][key] / maxV * (h - 20);
+      if (i === 0) cctx.moveTo(x, y); else cctx.lineTo(x, y);
+    }
+    if (fill) {
+      cctx.lineTo(w - 5, h - 8);
+      cctx.lineTo(5, h - 8);
+      cctx.closePath();
+      cctx.fillStyle = fill;
+      cctx.fill();
+    }
+    cctx.strokeStyle = color;
+    cctx.lineWidth = 1.8;
+    cctx.stroke();
+  }
+  line('tot', 'rgba(150,200,235,0.9)', 'rgba(150,200,235,0.07)');
+  line('tum', 'rgba(226,114,106,0.95)', 'rgba(226,114,106,0.09)');
+
+  cctx.fillStyle = 'rgba(150,152,160,0.92)';
+  cctx.font = '11px sans-serif';
+  cctx.fillText('总细胞', 10, 15);
+  cctx.fillStyle = 'rgba(226,114,106,0.95)';
+  cctx.fillText('肿瘤细胞', 58, 15);
+  cctx.fillStyle = 'rgba(110,113,122,0.9)';
+  cctx.fillText('峰值 ' + Math.round(maxV), w - 62, 15);
+}
+
+/* ============================================================
+   10. 主循环
+   ============================================================ */
+var playing = true, speed = 1, STEP_MS = 150, lastStepAt = 0;
+/* 发育速度倍率：由滑块直接控制，0 = 暂停演化（可继续观察形态） */
+var devSpeed = 1.0;
+var fpsFrames = 0, fpsLast = 0, renderAcc = 0;
+var inspTick = 0, inspMetaTick = 0;
+
+function tick(now) {
+  var t0 = performance.now();
+
+  var spd = playing ? (speed * devSpeed) : 0;
+  if (spd > 0 && now - lastStepAt > STEP_MS / spd) {
+    lastStepAt = now;
+    simStep();
+  }
+
+  /* 插值 + 死亡阶段机 */
+  var ease = 0.17;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (c.fullyGone) continue;
+    c.px += (c.x - c.px) * ease;
+    c.py += (c.y - c.py) * ease;
+
+    if (!c.dying) {
+      if (c.neo && c.neo < 1) c.neo = Math.min(1, c.neo + 0.055);
+      var tr = c.r * (c.neo || 1);
+      c.pr += (tr - c.pr) * 0.14;
+      /* 投放脉冲衰减 */
+      if (c.seedPulse > 0) {
+        c.seedPulse -= 0.012;
+        if (c.seedPulse < 0) c.seedPulse = 0;
+      }
+      continue;
+    }
+
+    c.dT++;
+    if (c.deathKind === 'lysis') {
+      /* 裂解性死亡（溶瘤病毒特征）：细胞先被病毒撑胀并透亮，
+         随即整体爆开 → 迸出大量新病毒颗粒，胞体瞬间瓦解。
+         与凋亡（收缩）和坏死（灰化）形成三种明确不同的视觉语言。 */
+      if (c.dPhase === 0) {
+        var l1 = Math.min(1, c.dT / 26);
+        c.pr += (c.r * (1.0 + 0.26 * l1) - c.pr) * 0.16;   // 胀大
+        c.dMorph = l1;
+        c.sc = 1;
+        if (l1 >= 1) {
+          c.dPhase = 1; c.dT = 0;
+          burstVirions(c);                                  // 爆裂：释放病毒
+          burstFx.push({ x: c.x, y: c.y, r: c.r * 0.6, t: 1.0 });
+          c.pr = 0; c.sc = 0;
+          if (!mileGot.first_lysis) unlockMile('first_lysis');   // 第一次目睹裂解
+        }
+      } else {
+        c.pr = 0; c.sc = 0;
+        c.fullyGone = true;
+      }
+    } else if (c.deathKind === 'apoptosis') {
+      if (c.dPhase === 0) {
+        var k1 = Math.min(1, c.dT / 26);
+        c.pr += (c.r * (1.0 - 0.38 * k1) - c.pr) * 0.22;
+        c.dMorph = k1;
+        if (k1 >= 1) { c.dPhase = 1; c.dT = 0; }
+      } else if (c.dPhase === 1) {
+        var k2 = Math.min(1, c.dT / 22);
+        c.pr += (c.r * (0.62 - 0.12 * k2) - c.pr) * 0.22;
+        c.dMorph = 1 + k2;
+        if (k2 >= 1) {
+          c.dPhase = 2; c.dT = 0;
+          var nb = 3 + ((rnd() * 3) | 0);
+          c.shards = [];
+          for (var sb = 0; sb < nb; sb++) {
+            var ang = rng(0, 6.283), dist = rng(0.3, 1.0) * c.pr;
+            c.shards.push({
+              x: c.x + Math.cos(ang) * dist, y: c.y + Math.sin(ang) * dist,
+              vx: Math.cos(ang) * rng(0.05, 0.28), vy: Math.sin(ang) * rng(0.05, 0.28),
+              r: c.r * rng(0.16, 0.30), pr: 0.5,
+              spr: (rnd() * BODY.length) | 0, life: 1.0
+            });
+          }
+          c.pr = 0; c.sc = 0;
+        }
+      } else {
+        c.pr = 0; c.sc = 0;
+        var gone = true;
+        for (var s3 = 0; s3 < c.shards.length; s3++) {
+          var s5 = c.shards[s3];
+          s5.x += s5.vx; s5.y += s5.vy;
+          s5.vx *= 0.93; s5.vy *= 0.93;
+          s5.pr += (s5.r - s5.pr) * 0.14;
+          s5.life -= 0.0045;
+          if (s5.life > 0) gone = false;
+        }
+        if (gone) c.fullyGone = true;
+      }
+    } else {
+      /* 坏死三阶段（对齐真实病理过程）
+         ① 肿胀：只到 1.10 倍半径（约 1.2 倍面积），并且同时开始失水变暗
+         ② 破裂：膜破，胞质外泄 → 尺寸回落到 0.9 倍，同时透明度上升（消散）
+         ③ 降解：继续收缩 + 淡出，最后消失
+         关键修正：不再出现"面积撑大 1.5 倍还留在那里"的观感。 */
+      if (c.dPhase === 0) {
+        var n1 = Math.min(1, c.dT / 34);
+        c.pr += (c.r * (1.0 + 0.10 * n1) - c.pr) * 0.14;
+        c.sc = 1 - 0.06 * n1;
+        c.dMorph = n1;
+        if (n1 >= 1) { c.dPhase = 1; c.dT = 0; }
+      } else if (c.dPhase === 1) {
+        var n2 = Math.min(1, c.dT / 40);
+        c.pr += (c.r * (1.10 - 0.20 * n2) - c.pr) * 0.12;   // 破裂后回落
+        c.sc = 0.94 - 0.30 * n2;
+        c.dMorph = 1 + n2;
+        if (n2 >= 1) { c.dPhase = 2; c.dT = 0; }
+      } else {
+        c.pr += (c.r * 0.78 - c.pr) * 0.06;                  // 碎片继续收缩
+        c.sc -= 0.012;
+        c.dMorph = 2 + Math.min(1, (1 - c.sc) / 0.64);
+        if (c.sc <= 0.12) { c.sc = 0; c.fullyGone = true; }   // 淡到几乎看不见就移除
+      }
+    }
+  }
+
+  /* 病毒颗粒插值 + 爆裂特效衰减 */
+  for (var vf = 0; vf < virions.length; vf++) {
+    var vq = virions[vf];
+    vq.px += (vq.x - vq.px) * 0.26;
+    vq.py += (vq.y - vq.py) * 0.26;
+  }
+  for (var bq = burstFx.length - 1; bq >= 0; bq--) {
+    burstFx[bq].t -= 0.030;
+    if (burstFx[bq].t <= 0) burstFx.splice(bq, 1);
+  }
+  if (virionBurstTick > 0) virionBurstTick--;
+
+  render();
+  if (chartTick++ % 10 === 0) drawChart();
+  /* 放大视图：每帧重绘，细胞器持续运动（动态观察） */
+  inspPhase += 0.016;
+  if (picked && picked.fullyGone) { picked = null; updateInspMeta(); }
+  if (picked) {
+    drawInspector();
+    if (inspMetaTick++ % 12 === 0) updateInspMeta();
+  } else if (inspTick++ % 20 === 0) {
+    drawInspector();          /* 空态也只偶尔重绘，省开销 */
+  }
+
+  renderAcc += performance.now() - t0;
+
+  fpsFrames++;
+  if (now - fpsLast > 500) {
+    var fps = Math.round(fpsFrames * 1000 / (now - fpsLast));
+    elHud2.innerHTML = fps + ' fps<br>' +
+      (renderAcc / Math.max(1, fpsFrames)).toFixed(1) + ' ms';
+    fpsFrames = 0; renderAcc = 0; fpsLast = now;
+  }
+
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   11. 预设场景
+   ============================================================ */
+var PRESETS = [
+  { id: 'normal', name: '正常培养', sub: '基线对照', env: { nutrient: 70, oxygen: 78, immune: 45, mutation: 8, chemo: 0, virus: 0 } },
+  { id: 'oncogenic', name: '致癌突变', sub: '高突变率', env: { nutrient: 80, oxygen: 55, immune: 10, mutation: 88, chemo: 0, virus: 0 } },
+  { id: 'hypoxia', name: '缺氧筛选', sub: '低氧选择压力', env: { nutrient: 75, oxygen: 14, immune: 15, mutation: 45, chemo: 0, virus: 0 } },
+  { id: 'immune', name: '免疫清除', sub: '强化免疫监视', env: { nutrient: 70, oxygen: 65, immune: 92, mutation: 30, chemo: 0, virus: 0 } },
+  { id: 'chemo', name: '化疗干预', sub: '药物杀伤', env: { nutrient: 70, oxygen: 60, immune: 35, mutation: 30, chemo: 70, virus: 0 } },
+  { id: 'starve', name: '营养剥夺', sub: '增殖停滞', env: { nutrient: 6, oxygen: 60, immune: 30, mutation: 20, chemo: 0, virus: 0 } },
+  { id: 'viro', name: '溶瘤病毒', sub: '靶向裂解肿瘤', env: { nutrient: 75, oxygen: 62, immune: 12, mutation: 35, chemo: 0, virus: 72 } },
+  { id: 'virocombo', name: '病毒+免疫', sub: '疗法互相干扰', env: { nutrient: 72, oxygen: 60, immune: 70, mutation: 30, chemo: 0, virus: 65 } }
+];
+var presBox = $('presets');
+PRESETS.forEach(function (p) {
+  var b = document.createElement('button');
+  b.className = 'preset';
+  b.innerHTML = '<b>' + p.name + '</b><span>' + p.sub + '</span>';
+  b.addEventListener('click', function () { applyPreset(p); });
+  presBox.appendChild(b);
+});
+function applyPreset(p) {
+  /* 预设 = 自由探索模式：不设目标、不判成败，纯粹用来试参数 */
+  mission = null; missionDone = false;
+  Object.keys(p.env).forEach(function (k) { E[k] = p.env[k]; });
+  syncSliders();
+  resetDish();
+  step = 0; missionStartStep = 0;
+  $('mName').innerHTML = '自由探索<em>无目标</em>';
+  $('mGoal').textContent = '当前场景「' + p.name + '」：' + p.sub +
+    '。随意拖动环境因子，观察培养皿如何响应。点「换下一题」可切回实验任务。';
+  $('mBarFill').style.width = '0%';
+  $('mProg').textContent = '自由探索中';
+  $('mLeft').textContent = '不设时限';
+  $('mStars').innerHTML = '<i>★★★</i>';
+  $('mTip').innerHTML = '<b>玩法：</b>先随便改一个因子，看曲线怎么变——这是理解每个因子作用最快的方式。';
+  showEvent('已加载场景「' + p.name + '」：' + p.sub + '。这是自由探索模式。');
+}
+
+/* ============================================================
+   14. 交互
+   ============================================================ */
+var btnPlay = $('btnPlay');
+btnPlay.addEventListener('click', function () {
+  playing = !playing;
+  btnPlay.textContent = playing ? '暂停' : '继续';
+  btnPlay.classList.toggle('on', playing);
+  btnPlay.classList.toggle('pri', playing);
+});
+$('btnStep').addEventListener('click', function () {
+  playing = false;
+  btnPlay.textContent = '继续';
+  btnPlay.classList.remove('on', 'pri');
+  simStep();
+});
+$('btnReset').addEventListener('click', function () {
+  if (mission) {
+    /* 重做当前任务（保留任务与目标） */
+    Object.keys(mission.env).forEach(function (k) { E[k] = mission.env[k]; });
+    syncSliders();
+    resetDish();
+    step = 0; missionStartStep = 0; missionDone = false;
+    renderMission();
+    showEvent('已重置：重新挑战「' + mission.name + '」。');
+  } else {
+    resetDish();
+    step = 0; missionStartStep = 0;
+  }
+});
+$('btnHint').addEventListener('click', function () {
+  if (!mission) { toast('先选一道实验题吧'); return; }
+  /* 提示里带 <b> 高亮，改写到任务卡下方（那里支持 HTML） */
+  $('mTip').innerHTML = '<b>💡 提示：</b>' + mission.hint;
+  showEvent('提示已显示在任务卡下方 ↓');
+});
+$('btnNext').addEventListener('click', function () {
+  nextMission();
+});
+$('btnSeed').addEventListener('click', function () {
+  /* 找一块相对空旷的位置投放，否则肿瘤细胞会埋在密集细胞堆里看不见 */
+  var bestX = CX, bestY = CY, bestGap = -1;
+  for (var t = 0; t < 40; t++) {
+    var ta = rng(0, 6.283), tr = rng(0.15, 0.82) * RAD;
+    var tx = CX + Math.cos(ta) * tr, ty = CY + Math.sin(ta) * tr;
+    if (!inDish(tx, ty, 42)) continue;
+    var gap = 1e9;
+    for (var q = 0; q < cells.length; q++) {
+      var oc = cells[q];
+      if (oc.fullyGone) continue;
+      var qx = oc.x - tx, qy = oc.y - ty;
+      var qd = Math.sqrt(qx * qx + qy * qy) - oc.r;
+      if (qd < gap) gap = qd;
+      if (gap > 60) break;
+    }
+    if (gap > bestGap) { bestGap = gap; bestX = tx; bestY = ty; }
+    if (gap > 70) break;
+  }
+
+  var seeded = [];
+  for (var i = 0; i < 3; i++) {
+    var tryX, tryY, ok2 = false;
+    /* 每个细胞都单独找一个合法落点，保证 3 个都真的投进去 */
+    for (var att = 0; att < 24; att++) {
+      var ang = rng(0, 6.283), rad = rng(0, 30);
+      tryX = bestX + Math.cos(ang) * rad;
+      tryY = bestY + Math.sin(ang) * rad;
+      if (inDish(tryX, tryY, 18)) { ok2 = true; break; }
+    }
+    if (!ok2) { tryX = CX; tryY = CY; }
+    var cc = newCell(tryX, tryY, 'tumor');
+    cc.neo = 0.20; cc.pr = cc.r * 0.20;
+    cc.seedPulse = 1;                 // 投放高亮：让玩家一眼看到新投放的细胞
+    cells.push(cc);
+    seeded.push(cc);
+  }
+  picked = seeded[0];
+  syncSpace();
+  updateMetrics();
+  drawInspector();
+  updateInspMeta();
+  showEvent('已在此处投放 3 个肿瘤细胞（红色描边 + 高亮圈）——观察它们能否建立克隆。');
+});
+/* 投放病毒：在指定位置撒一批颗粒（若未开启病毒因子则同时拉高滑块） */
+$('btnVirus').addEventListener('click', function () {
+  if (E.virus < 20) { E.virus = 45; syncSliders(); }
+  spawnVirions(26, CX, CY, RAD * 0.55, true);
+  burstFx.push({ x: CX, y: CY, r: RAD * 0.30, t: 1.0 });
+  showEvent('已投放溶瘤病毒：青蓝色颗粒正在培养液里扩散，它们会优先感染肿瘤细胞。');
+  updateMetrics();
+});
+
+Array.prototype.forEach.call(document.querySelectorAll('.spd'), function (b) {
+  b.addEventListener('click', function () {
+    speed = +this.getAttribute('data-s');
+    Array.prototype.forEach.call(document.querySelectorAll('.spd'), function (o) {
+      o.classList.toggle('on', o === b);
+    });
+  });
+});
+
+/* 发育速度滑块：0~100 映射到 0.0×~3.0×，与 1×/2×/4× 按钮相乘 */
+(function () {
+  var range = $('devspeedRange'), out = $('devspeedOut'), hint = $('devspeedHint');
+  var outEl = document.querySelector('[data-out="devspeed"]');
+  var presetHint = hint ? hint.textContent : '';
+  function fmt(v) {
+    var s = (v / 100 * 3).toFixed(1);
+    return s + '×';
+  }
+  function apply() {
+    var v = +range.value;
+    devSpeed = v / 100 * 3;
+    if (outEl) outEl.textContent = fmt(v);
+    if (hint) {
+      if (devSpeed === 0) hint.textContent = '演化已暂停（0.0×）。培养皿静止，可放心点击细胞观察放大形态。';
+      else if (devSpeed < 0.5) hint.textContent = '慢速演化，便于逐步观察每一次分裂与形态变化。';
+      else if (devSpeed > 2.0) hint.textContent = '高速演化，快速看到克隆扩张与最终命运判定。';
+      else hint.textContent = presetHint;
+    }
+  }
+  if (range) {
+    range.value = 33;   // ≈1.0×
+    range.addEventListener('input', apply);
+    apply();
+  }
+})();
+document.addEventListener('keydown', function (e) {
+  if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key === ' ') { e.preventDefault(); btnPlay.click(); }
+  else if (e.key === 'r' || e.key === 'R') $('btnReset').click();
+  else if (e.key === 'f' || e.key === 'F') btnFluo.click();
+});
+
+/* ============================================================
+   15. 启动
+   ============================================================ */
+function onBuildProgress(p) {
+  var pct = Math.round(p * 100);
+  $('loadTxt').textContent = '正在生成细胞形态… ' + pct + '%';
+}
+var _yieldTick = 0;
+
+async function boot() {
+  buildBackground();
+  $('loadTxt').textContent = '正在生成细胞形态… 0%';
+  await new Promise(function (r) { setTimeout(r, 0); });
+
+  /* 分批构建精灵，避免长时间阻塞（让加载动画能转动）*/
+  var totalTypes = TYPE_KEYS.length;
+  for (var ti = 0; ti < totalTypes; ti++) {
+    var key = TYPE_KEYS[ti];
+    var perType = (key === 'tumor' || key === 'mutant') ? VARIANTS : Math.round(VARIANTS * 0.7);
+    var baseTi = ti;
+    buildTypeSprites(key, perType, function (v, n) {
+      if (v % 3 !== 0) return;
+      $('loadTxt').textContent = '正在生成细胞形态… ' +
+        Math.round(((baseTi + (v + 1) / n) / totalTypes) * 85) + '%';
+    });
+    await new Promise(function (r) { setTimeout(r, 0); });
+  }
+  for (var av = 0; av < 5; av++) APOP.push(buildApoptotic(av / 4));
+  for (var bv = 0; bv < 6; bv++) BODY.push(buildBody());
+  for (var nv = 0; nv < 4; nv++) NECRO.push(buildNecrotic(nv / 3));
+
+  /* 病毒颗粒 + 感染覆盖层（相衬处理，与细胞同一套光学设定） */
+  $('loadTxt').textContent = '正在生成病毒颗粒…';
+  await new Promise(function (r) { setTimeout(r, 0); });
+  for (var vp = 0; vp < 5; vp++) VIRION.push(buildVirusParticle(vp));
+  for (var io = 0; io < 6; io++) {
+    var st2 = rng(2.0, 2.8), rt2 = rng(0, Math.PI);
+    INFECT_OVER.push(buildInfectedOverlay(st2, rt2, st2 * 2.3 + rt2 * 1.7));
+  }
+
+  $('loadTxt').textContent = '正在初始化培养皿…';
+  await new Promise(function (r) { setTimeout(r, 0); });
+  renderMiles();
+  startMissionByIndex(0);      // 开局直接进入第一道实验题
+  render();
+  drawChart();
+  drawInspector();
+  updateInspMeta();
+  $('loading').classList.add('hide');
+  requestAnimationFrame(tick);
+}
+boot();
+
+})();
+</script>
+</body>
+</html>

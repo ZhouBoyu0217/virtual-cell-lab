@@ -1,0 +1,20 @@
+{
+  "name": "virtual-cell-lab-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "虚拟细胞实验室 · 自动化验收套件",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:a8": "node verify-a8-storage.js",
+    "test:a9": "node scan-terms.js",
+    "test:a10": "node check-balance.js",
+    "test:a11": "node verify-a11-transition.js",
+    "test:constraints": "node check-constraints.js",
+    "test:dom": "node verify-dom.js",
+    "test:audit": "node audit-deep.js",
+    "capture": "node capture-states.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}

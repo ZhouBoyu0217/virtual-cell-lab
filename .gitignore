@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────
+# 虚拟细胞实验室 · 忽略规则
+# 原则：仓库只保留「源代码 + 文档 + 测试」，不保留调试产物
+# ─────────────────────────────────────────────
+
+# ---- 开发过程目录（调试脚本、截图、回滚快照，约 79 MB）----
+_dev/
+
+# ---- 参考资料目录（含期刊插图，有版权，不可公开）----
+_ref/
+
+# ---- Python 虚拟环境（约 84 MB）----
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- Node 依赖 ----
+node_modules/
+package-lock.json
+
+# ---- 构建产物 / 文档转换中间件 ----
+output/
+*.docx
+*.pdf
+!paper/*.md
+
+# ---- 截图与测试产物 ----
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+tests/artifacts/
+!tests/screenshots/*.png
+!docs/screenshots/*.jpg
+!docs/screenshots/*.png
+
+# ---- 日志与临时文件 ----
+*.log
+*.tmp
+*.bak
+*.swp
+
+# ---- 编辑器与系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 一次性原型与快照 ----
+prototype-*.html
+_*.html
+
+# ---- 本地环境变量 ----
+.env
+.env.local
