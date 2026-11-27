@@ -4,6 +4,9 @@
 >
 > An interactive, dependency-free tumor microenvironment simulator running entirely in your browser.
 
+> ### ▶ [**在线体验 / Live Demo**](https://zhouboyu0217.github.io/virtual-cell-lab/)
+> 不用下载、不用安装，点开就能玩。
+
 ![Tier 1 首屏](docs/screenshots/tier1-onboarding.jpg)
 
 **不用安装任何东西**：双击 `index.html` 就能跑。没有 npm，没有框架，没有 CDN，没有构建步骤。
@@ -31,6 +34,9 @@
 ## 快速开始
 
 ```bash
+# 方式零：打开浏览器（最快）
+# https://zhouboyu0217.github.io/virtual-cell-lab/
+
 # 方式一：直接双击（最简单）
 index.html
 
