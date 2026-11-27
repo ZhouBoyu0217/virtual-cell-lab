@@ -20,11 +20,13 @@ __pycache__/
 node_modules/
 package-lock.json
 
+# ---- 课程论文（不随开源项目发布）----
+paper/
+
 # ---- 构建产物 / 文档转换中间件 ----
 output/
 *.docx
 *.pdf
-!paper/*.md
 
 # ---- 截图与测试产物 ----
 *.png

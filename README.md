@@ -143,7 +143,6 @@ virtual-cell-lab/
 │   ├── run-all.js             #   一键总运行器
 │   ├── verify-*.js            #   各项验收脚本
 │   └── verification-report.md #   验收报告
-├── paper/                     # 配套课程论文
 └── docs/
     └── screenshots/
 ```
@@ -178,12 +177,6 @@ node run-all.js      # 一键运行，输出 verification-report.md
 - **`onboarding-design.md`** — 三层引导的完整状态机、解锁触发条件、术语通俗化映射表、L1 前三步逐字文案
 - **`visual-hierarchy.md`** — 视觉权重的量化体系（边框可见度 3.20 / 1.25 / 1.12 三档梯度）、焦点手法参数、解锁动效时间轴
 - **`polish-spec.md`** — 配色实测 WCAG 对比度、4px 间距网格、暗色卡片的内高光参数
-
----
-
-## 配套论文
-
-`paper/` 下有围绕本项目撰写的课程论文《面向肿瘤微环境演化模拟的交互式生物计算系统设计与实现》，包含系统设计、算法细节与两组实验数据（免疫强度剂量—响应曲线、高负载性能测试）。
 
 ---
 
