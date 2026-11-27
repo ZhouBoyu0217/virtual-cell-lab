@@ -7,6 +7,10 @@
 > ### ▶ [**在线体验 / Live Demo**](https://zhouboyu0217.github.io/virtual-cell-lab/)
 > 不用下载、不用安装，点开就能玩。
 
+![运行演示：点开始 → 细胞增殖 → 推高免疫兵力 → 压制肿瘤](docs/screenshots/demo.gif)
+
+<sub>▲ 6 秒实录：第 0 轮 64 个细胞 → 第 76 轮 217 个。拖动「免疫兵力」到 80 后，绿色免疫细胞贴上去清除坏细胞，右侧状态卡与事件流同步记录因果。</sub>
+
 ![Tier 1 首屏](docs/screenshots/tier1-onboarding.jpg)
 
 **不用安装任何东西**：双击 `index.html` 就能跑。没有 npm，没有框架，没有 CDN，没有构建步骤。
